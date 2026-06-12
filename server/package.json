@@ -4,16 +4,24 @@
   "type": "module",
   "private": true,
   "imports": {
-    "@/*": "./src/*"
+    "@/*": "./src/*",
+    "#/*": "./src/*"
   },
   "devDependencies": {
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.0.6",
     "@types/node": "latest"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
     "express": "^5.2.1",
-    "mongoose": "^9.7.0"
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.7.0",
+    "twilio": "^6.0.2",
+    "zod": "^4.4.3"
   }
 }
