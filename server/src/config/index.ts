@@ -7,7 +7,7 @@ export const config = {
     debug_mode  : process.env.DEBUG_MODE === 'true',
     db_uri : process.env.DB_URI || '',
     jwt_secret : process.env.JWT_SECRET || '',
-    jwt_expires : process.env.JWT_EXPIRES || '24h',
+    jwt_expires : 1000 * 60 * 60 * 24 * 1,
     bcrypt_salt_rounds : process.env.BCRYPT_SALT_ROUNDS || 10,
     session_secret : process.env.SESSION_SECRET || '',
     twilio : {
