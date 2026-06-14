@@ -3,10 +3,12 @@ import express from 'express';
 import models from "@/models";
 import config from "@/config";
 import router from "@/routes";
+import swaggerSpec from "@/swagger";
 import validator from "@/validator";
 import Helper from '@/utils/helper';
 import { Logger } from '@/utils/logger';
 import cookieParser from 'cookie-parser';
+import swaggerUi from "swagger-ui-express";
 import RateLimit from "express-rate-limit";
 import { Sanitizer } from '@/utils/sanitize';
 import { ResponseHandler } from '@/utils/response';
@@ -91,6 +93,11 @@ export default async function middlewares(app: express.Express) {
     }))
     app.use(init)
     app.use(security)
+    app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec))
+    app.get("/docs.json", (_req, res) => {
+        res.setHeader("Content-Type", "application/json");
+        res.send(swaggerSpec);
+    });
     app.use("/", router)
 }
 

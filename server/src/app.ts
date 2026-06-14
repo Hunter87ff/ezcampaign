@@ -22,7 +22,7 @@ export default class EzCampaign{
 
     public async start(){
         this.app.listen(config.port, async ()=>{
-            logger.info(`Server running on port: ${config.port}`);
+            logger.info(`Server running on : ${config.endpoint}`);
             await db()
         })
     }

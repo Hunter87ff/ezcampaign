@@ -43,10 +43,31 @@ export default class MessageController {
             }
             const client = twilio(config.twilio.sid, config.twilio.auth_token);
 
+            // Map template variables from named object to Twilio 1-based index (e.g. name -> 1)
+            const twilioVariables: Record<string, string> = {};
+            if (variables) {
+                const hasNumericKeys = Object.keys(variables).some(key => /^\d+$/.test(key));
+                if (hasNumericKeys) {
+                    Object.assign(twilioVariables, variables);
+                } else if (template.variables && template.variables.length > 0) {
+                    template.variables.forEach((varName, idx) => {
+                        const val = variables[varName];
+                        if (val !== undefined) {
+                            twilioVariables[String(idx + 1)] = val;
+                        }
+                    });
+                } else {
+                    Object.assign(twilioVariables, variables);
+                }
+            }
+
             // Reconstruct message body for database logging
             let bodyText = template.sampleBody || `Template: ${template.name}`;
             if (variables) {
                 for (const [key, val] of Object.entries(variables)) {
+                    bodyText = bodyText.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), val);
+                }
+                for (const [key, val] of Object.entries(twilioVariables)) {
                     bodyText = bodyText.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), val);
                 }
             }
@@ -58,7 +79,7 @@ export default class MessageController {
                     contentSid: template.templateSid,
                     from: config.twilio.from || "whatsapp:+916291745601",
                     to: `whatsapp:${lead.mobileNumber}`,
-                    contentVariables: JSON.stringify(variables || {})
+                    contentVariables: JSON.stringify(twilioVariables)
                 });
             } catch (twilioError: any) {
                 res.logger.error("Twilio send failed:", twilioError);
