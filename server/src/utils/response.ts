@@ -26,7 +26,7 @@ class ResponseHandler {
         });
     }
 
-    async internalServerError(
+    async error(
         res: Response,
         message: any = 'Internal Server Error',
         data: any = {},
