@@ -5,7 +5,7 @@ export const config = {
     endpoint : process.env.ENDPOINT || 'http://localhost:8000',
     is_prod : process.env.NODE_ENV === 'production',
     debug_mode  : process.env.DEBUG_MODE === 'true',
-    db_uri : process.env.DB_URI || '',
+    db_uri : process.env.DB_URI || process.env.DB_URL || process.env.MONGODB_URI || '',
     jwt_secret : process.env.JWT_SECRET || '',
     jwt_expires : 1000 * 60 * 60 * 24 * 1,
     bcrypt_salt_rounds : process.env.BCRYPT_SALT_ROUNDS || 10,
@@ -20,4 +20,19 @@ export const config = {
     }
 }
 
+function checkEnvironment(){
+    function error(err : string){
+        console.error("Environment Error", err);
+        process.exit(1);
+    }
+    if(!config.db_uri) return error('DB URI not found');
+    if(!config.jwt_secret) return error('JWT SECRET not found');
+    // if(!config.session_secret) return error('SESSION SECRET not found');
+    if(!config.twilio.sid) return error('TWILIO SID not found');
+    if(!config.twilio.auth_token) return error('TWILIO AUTH TOKEN not found');
+    if(!config.twilio.from) return error('TWILIO FROM not found');
+    return true;
+}
+
+checkEnvironment();
 export default config;

@@ -1,16 +1,19 @@
 import cors from "cors";
 import express from 'express';
 import models from "@/models";
-import cookieParser from 'cookie-parser';
+import config from "@/config";
+import router from "@/routes";
 import validator from "@/validator";
+import Helper from '@/utils/helper';
+import { Logger } from '@/utils/logger';
+import cookieParser from 'cookie-parser';
+import RateLimit from "express-rate-limit";
 import { Sanitizer } from '@/utils/sanitize';
 import { ResponseHandler } from '@/utils/response';
-import { Logger } from '@/utils/logger';
-import Helper from '@/utils/helper';
-import RateLimit from "express-rate-limit";
-import type { NextFunction, Request, Response } from 'express';
-import config from "@/config";
 import { type UserToken } from "@/utils/wrappers/usertoken";
+import type { NextFunction, Request, Response } from 'express';
+
+
 
 
 
@@ -33,6 +36,7 @@ declare module 'express-serve-static-core' {
         is_admin?: boolean;
         validator?: typeof validator;
         valid_client: boolean;
+        db: typeof models;
     }
     interface Response {
         logger: Logger;
@@ -44,7 +48,8 @@ declare module 'express-serve-static-core' {
 }
 
 
-async function init(req: Request, res: Response, next: NextFunction){
+async function init(req: Request, res: Response, next: NextFunction) {
+    req.db = req.app.db;
     req.helper = Helper;
     req.sanitize = Sanitizer;
     req.validator = validator;
@@ -55,13 +60,13 @@ async function init(req: Request, res: Response, next: NextFunction){
 
 
 const limiter = RateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later',
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: 'Too many requests from this IP, please try again later',
 });
 
 
-async function security(req : Request, res : Response, next: NextFunction){
+async function security(req: Request, res: Response, next: NextFunction) {
     limiter(req, res, next);
 }
 
@@ -80,12 +85,13 @@ export default async function middlewares(app: express.Express) {
     app.jwts = new Set<string>([]);
     app.responseHandler = new ResponseHandler();
     app.use(cors({
-        origin : config.allowed.origins,
-        methods : ["GET", "POST", "PUT", "DELETE", "PATCH"],
-        credentials : true,
+        origin: config.allowed.origins,
+        methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+        credentials: true,
     }))
     app.use(init)
     app.use(security)
+    app.use("/", router)
 }
 
 export {

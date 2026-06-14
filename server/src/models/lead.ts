@@ -25,6 +25,7 @@ const LeadSchema = new Schema<ILead>(
             type: String,
             required: true,
             unique: true,
+            index: true,
             trim: true
         },
         email: {
@@ -61,8 +62,6 @@ const LeadSchema = new Schema<ILead>(
     }
 );
 
-// Add index on mobileNumber for fast queries since they must be unique and are used in webhooks
-LeadSchema.index({ mobileNumber: 1 });
 
 export const Lead = mongoose.model<ILead>("Lead", LeadSchema);
 export default Lead;

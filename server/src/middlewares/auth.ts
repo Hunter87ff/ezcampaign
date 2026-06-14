@@ -3,11 +3,6 @@ import type { Request, Response, NextFunction } from "express";
 import { UserToken } from "@/utils/wrappers/usertoken";
 
 
-
-
-
-
-
 async function initUserToken(req : Request){
     const token = req.cookies.token || req.header("Authorization") || ""
     if (!token){return}
@@ -19,8 +14,6 @@ async function initUserToken(req : Request){
         logger.error(err)
     }
 }
-
-
 
 export async function authorize(req: Request, res: Response, next: NextFunction){
     await initUserToken(req)

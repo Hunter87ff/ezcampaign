@@ -69,3 +69,33 @@ Refer to `task.md` or Mongoose models directly for the precise types.
 - **`message_logs`**: `leadId` (Ref: `leads`), `direction` (`'outbound' | 'inbound'`), `templateSid`, `body`, `twilioSid`, `status`, `sentAt`.
 - **`call_logs`**: `leadId` (Ref: `leads`), `phoneNumber`, `twilioCallSid`, `status`, `startTime`, `endTime`, `duration`.
 - **`activity_logs`**: `leadId` (Ref: `leads`, optional), `action` (enum), `details` (Mixed), `createdAt`.
+
+
+### 4. Controller Implementation Guidelines
+when implementing controllers, make sure to follow this pattern
+```js
+import {Request, Response} from 'express';
+
+export default class ControllerName{
+
+  /**
+  * returns all items
+  * @route GET /getitems
+  * @access public | admin | manager
+  */
+  static async getItems(req: Request, res: Response){
+    try{
+      const dbItems = await req.db.Collection.find({}); // or whatever db action it is
+      return res.handler.success(res, "Success", dbItems);
+    }catch(err){
+      res.handler.error(res, "message", {err /* or whatever error data is present here */})
+    }
+  }
+}
+```
+
+### Good Practice
+- always make sure to use the correct types like `req: Request, res: Response, next: NextFunction` instead of `req: any, res: any, next: any`
+- add paging to endpoints that retrns list of items 
+- use `req.db` to access database collections
+- use `res.handler` to access request handlers for sending responses
