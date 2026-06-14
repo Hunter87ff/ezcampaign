@@ -18,23 +18,12 @@ export default class MessageController {
                 return res.handler.badRequest(res, "Validation Error", validation.error.format());
             }
 
-            const { leadId, templateId, variables } = validation.data;
+            const { leadId, templateId, body, variables } = validation.data;
 
             // Fetch lead
             const lead = await req.db.Lead.findOne({ _id: leadId, isDeleted: false });
             if (!lead) {
                 return res.handler.notFound(res, "Lead not found");
-            }
-
-            // Fetch template
-            const template = await req.db.Template.findById(templateId);
-            if (!template) {
-                return res.handler.notFound(res, "Template not found");
-            }
-
-            // Verify template matches lead's business type
-            if (template.businessType !== lead.businessType) {
-                return res.handler.badRequest(res, `Template business type '${template.businessType}' does not match lead business type '${lead.businessType}'`);
             }
 
             // Instantiate Twilio client
@@ -43,57 +32,95 @@ export default class MessageController {
             }
             const client = twilio(config.twilio.sid, config.twilio.auth_token);
 
-            // Map template variables from named object to Twilio 1-based index (e.g. name -> 1)
-            const twilioVariables: Record<string, string> = {};
-            if (variables) {
-                const hasNumericKeys = Object.keys(variables).some(key => /^\d+$/.test(key));
-                if (hasNumericKeys) {
-                    Object.assign(twilioVariables, variables);
-                } else if (template.variables && template.variables.length > 0) {
-                    template.variables.forEach((varName, idx) => {
-                        const val = variables[varName];
-                        if (val !== undefined) {
-                            twilioVariables[String(idx + 1)] = val;
-                        }
+            let bodyText = "";
+            let twilioSid = "";
+            let status = "queued";
+            let templateSid: string | undefined = undefined;
+
+            if (templateId) {
+                // Fetch template
+                const template = await req.db.Template.findById(templateId);
+                if (!template) {
+                    return res.handler.notFound(res, "Template not found");
+                }
+
+                // Verify template matches lead's business type
+                if (template.businessType !== lead.businessType) {
+                    return res.handler.badRequest(res, `Template business type '${template.businessType}' does not match lead business type '${lead.businessType}'`);
+                }
+
+                templateSid = template.templateSid;
+
+                // Map template variables from named object to Twilio 1-based index (e.g. name -> 1)
+                const twilioVariables: Record<string, string> = {};
+                if (variables) {
+                    const hasNumericKeys = Object.keys(variables).some(key => /^\d+$/.test(key));
+                    if (hasNumericKeys) {
+                        Object.assign(twilioVariables, variables);
+                    } else if (template.variables && template.variables.length > 0) {
+                        template.variables.forEach((varName, idx) => {
+                            const val = variables[varName];
+                            if (val !== undefined) {
+                                twilioVariables[String(idx + 1)] = val;
+                            }
+                        });
+                    } else {
+                        Object.assign(twilioVariables, variables);
+                    }
+                }
+
+                // Reconstruct message body for database logging
+                bodyText = template.sampleBody || `Template: ${template.name}`;
+                if (variables) {
+                    for (const [key, val] of Object.entries(variables)) {
+                        bodyText = bodyText.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), val);
+                    }
+                    for (const [key, val] of Object.entries(twilioVariables)) {
+                        bodyText = bodyText.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), val);
+                    }
+                }
+
+                // Send via Twilio
+                try {
+                    const message = await client.messages.create({
+                        contentSid: template.templateSid,
+                        from: config.twilio.from || "whatsapp:+916291745601",
+                        to: `whatsapp:${lead.mobileNumber}`,
+                        contentVariables: JSON.stringify(twilioVariables)
                     });
-                } else {
-                    Object.assign(twilioVariables, variables);
+                    twilioSid = message.sid;
+                    status = message.status;
+                } catch (twilioError: any) {
+                    res.logger.error("Twilio send failed:", twilioError);
+                    return res.handler.badRequest(res, `Twilio delivery failed: ${twilioError.message}`, twilioError);
                 }
-            }
-
-            // Reconstruct message body for database logging
-            let bodyText = template.sampleBody || `Template: ${template.name}`;
-            if (variables) {
-                for (const [key, val] of Object.entries(variables)) {
-                    bodyText = bodyText.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), val);
+            } else if (body) {
+                bodyText = body;
+                // Send free text via Twilio
+                try {
+                    const message = await client.messages.create({
+                        from: config.twilio.from || "whatsapp:+916291745601",
+                        to: `whatsapp:${lead.mobileNumber}`,
+                        body: bodyText
+                    });
+                    twilioSid = message.sid;
+                    status = message.status;
+                } catch (twilioError: any) {
+                    res.logger.error("Twilio send failed:", twilioError);
+                    return res.handler.badRequest(res, `Twilio delivery failed: ${twilioError.message}`, twilioError);
                 }
-                for (const [key, val] of Object.entries(twilioVariables)) {
-                    bodyText = bodyText.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), val);
-                }
-            }
-
-            // Send via Twilio
-            let message;
-            try {
-                message = await client.messages.create({
-                    contentSid: template.templateSid,
-                    from: config.twilio.from || "whatsapp:+916291745601",
-                    to: `whatsapp:${lead.mobileNumber}`,
-                    contentVariables: JSON.stringify(twilioVariables)
-                });
-            } catch (twilioError: any) {
-                res.logger.error("Twilio send failed:", twilioError);
-                return res.handler.badRequest(res, `Twilio delivery failed: ${twilioError.message}`, twilioError);
+            } else {
+                return res.handler.badRequest(res, "Either templateId or body is required");
             }
 
             // Save MessageLog
             const messageLog = new req.db.MessageLog({
                 leadId: lead._id,
                 direction: "outbound",
-                templateSid: template.templateSid,
+                templateSid: templateSid,
                 body: bodyText,
-                twilioSid: message.sid,
-                status: "queued",
+                twilioSid: twilioSid,
+                status: status === "queued" ? "queued" : (status as any),
                 sentAt: new Date()
             });
             await messageLog.save();
@@ -109,9 +136,10 @@ export default class MessageController {
                 leadId: lead._id,
                 action: "message_sent",
                 details: {
-                    twilioSid: message.sid,
-                    templateSid: template.templateSid,
-                    status: message.status
+                    twilioSid: twilioSid,
+                    templateSid: templateSid,
+                    status: status,
+                    body: bodyText
                 }
             });
             await activity.save();

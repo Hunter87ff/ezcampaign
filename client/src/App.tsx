@@ -62,6 +62,18 @@ export const App: React.FC = () => {
     setCurrentPage('dashboard');
   };
 
+  // Centralized 401 Unauthorized handler
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      handleLogout();
+    };
+    window.addEventListener('ez_unauthorized', handleUnauthorized);
+    return () => {
+      window.removeEventListener('ez_unauthorized', handleUnauthorized);
+    };
+  }, []);
+
+
   // Enforce Login view if not authenticated
   if (!token) {
     return <Login onLoginSuccess={handleLoginSuccess} />;

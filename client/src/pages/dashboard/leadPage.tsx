@@ -111,44 +111,23 @@ export const LeadDetailPage: React.FC<LeadDetailProps> = ({ leadId }) => {
     const textToSend = chatInput.trim();
     setChatInput('');
 
-    // To follow message_logs structure, we can append a custom log entry
-    // We create a mock outgoing message
-    const now = new Date().toISOString();
-    const outboundMsg: MessageLog = {
-      _id: 'm_' + Math.random().toString(36).substring(2, 9),
-      leadId: lead._id,
-      direction: 'outbound',
-      body: textToSend,
-      twilioSid: 'SM' + Math.random().toString(36).substring(2, 28).toUpperCase(),
-      status: 'sent',
-      sentAt: now,
-    };
+    try {
+      const sentMsg = await apiService.sendMessage(lead._id, undefined, undefined, textToSend);
+      setMessages((prev) => [...prev, sentMsg]);
 
-    // Store in localStorage via custom flow
-    const storageData = localStorage.getItem('ez_messages');
-    const logs = storageData ? JSON.parse(storageData) : [];
-    logs.push(outboundMsg);
-    localStorage.setItem('ez_messages', JSON.stringify(logs));
+      // Update Lead status to contacted if new
+      if (lead.status === 'new') {
+        const updated = await apiService.saveLead({ ...lead, status: 'contacted' });
+        setLead(updated);
+      }
 
-    // Update messages local state
-    setMessages((prev) => [...prev, outboundMsg]);
-
-    // Update Lead status to contacted if new
-    if (lead.status === 'new') {
-      const updated = await apiService.saveLead({ ...lead, status: 'contacted' });
-      setLead(updated);
+      // Simulate incoming Sandbox response after 4 seconds
+      setTimeout(() => {
+        apiService.simulateIncomingReply(lead._id, lead.mobileNumber);
+      }, 4000);
+    } catch (err) {
+      console.error('Failed to send text message:', err);
     }
-
-    // Trigger activity
-    apiService.logActivity(lead._id, 'message_sent', {
-      body: textToSend,
-      direction: 'outbound',
-    });
-
-    // Simulate response
-    setTimeout(() => {
-      apiService.simulateIncomingReply(lead._id, lead.name);
-    }, 4000);
   };
 
   // Trigger Calling Simulator
@@ -233,7 +212,7 @@ export const LeadDetailPage: React.FC<LeadDetailProps> = ({ leadId }) => {
     if (!lead || !selectedTemplate) return;
 
     try {
-      await apiService.sendMessage(lead._id, selectedTemplate.templateSid, templateVariables);
+      await apiService.sendMessage(lead._id, selectedTemplate._id, templateVariables);
       setIsTemplateModalOpen(false);
       fetchLeadDetails();
     } catch (err) {

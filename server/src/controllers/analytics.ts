@@ -44,7 +44,10 @@ export default class AnalyticsController {
                 .limit(10)
                 .populate("leadId", "name mobileNumber businessType");
 
-            // 7. Messages per day trend (last 7 days)
+            // 7. Active Campaigns (Templates) count
+            const activeCampaigns = await req.db.Template.countDocuments({ isActive: true });
+
+            // 8. Messages per day trend (last 7 days)
             const sevenDaysAgo = new Date();
             sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
             const messagesTrend = await req.db.MessageLog.aggregate([
@@ -73,6 +76,7 @@ export default class AnalyticsController {
                 calls: {
                     total: totalCalls
                 },
+                activeCampaigns,
                 recentActivities
             });
 
