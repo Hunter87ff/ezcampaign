@@ -3,7 +3,6 @@ export enum Role {
     MANAGER = "manager"
 }
 
-
 export enum LeadStatus {
     NEW = "new",
     CONTACTED = "contacted",
@@ -12,10 +11,21 @@ export enum LeadStatus {
     CLOSED = "closed"
 }
 
+export enum BusinessType {
+    REAL_ESTATE = "real_estate",
+    HEALTHCARE = "healthcare",
+    EDUCATION = "education",
+    ECOMMERCE = "ecommerce",
+    FINANCE = "finance",
+    RESTAURANT = "restaurant",
+    TRAVEL = "travel",
+    OTHER = "other"
+}
 
 const enums = {
     Role,
-    LeadStatus
+    LeadStatus,
+    BusinessType
 }
 
 export default enums;
