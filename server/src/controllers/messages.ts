@@ -84,7 +84,7 @@ export default class MessageController {
                 try {
                     const message = await client.messages.create({
                         contentSid: template.templateSid,
-                        from: config.twilio.from || "whatsapp:+916291745601",
+                        from: config.twilio.wp_number || "whatsapp:+916291745601",
                         to: `whatsapp:${lead.mobileNumber}`,
                         contentVariables: JSON.stringify(twilioVariables)
                     });
@@ -99,7 +99,7 @@ export default class MessageController {
                 // Send free text via Twilio
                 try {
                     const message = await client.messages.create({
-                        from: config.twilio.from || "whatsapp:+916291745601",
+                        from: config.twilio.wp_number || "whatsapp:+916291745601",
                         to: `whatsapp:${lead.mobileNumber}`,
                         body: bodyText
                     });
@@ -127,7 +127,7 @@ export default class MessageController {
 
             // Update Lead status to contacted
             lead.status = req.db.Lead.schema.path("status").enumValues.includes("contacted")
-                ? ( "contacted" as any )
+                ? ("contacted" as any)
                 : lead.status;
             await lead.save();
 

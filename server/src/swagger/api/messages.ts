@@ -4,7 +4,7 @@
  *   post:
  *     tags: [Messages]
  *     summary: Send a WhatsApp message
- *     description: Send a WhatsApp template message to a lead via Twilio. Template business type must match lead business type.
+ *     description: Send a WhatsApp template or free-text message to a lead via Twilio. If templateId is provided, the template's business type must match the lead's business type. If body is provided, it is sent as a free-text message. Either templateId or body is required.
  *     security:
  *       - bearerAuth: []
  *     requestBody:

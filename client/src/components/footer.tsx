@@ -4,7 +4,7 @@ export const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="w-full py-4 px-container-padding bg-surface-container-low border-t border-surface-border text-on-surface-variant text-label-sm select-none transition-colors duration-200 mt-auto">
+    <footer className="hidden w-full py-4 px-container-padding bg-surface-container-low border-t border-surface-border text-on-surface-variant text-label-sm select-none transition-colors duration-200 mt-auto">
       <div className="flex flex-col sm:flex-row justify-between items-center gap-2 max-w-max-width mx-auto">
         <div>
           <span>&copy; {currentYear} EzCampaign B2B Admin portal. All rights reserved.</span>

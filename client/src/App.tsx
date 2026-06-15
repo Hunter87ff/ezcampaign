@@ -25,6 +25,7 @@ export const App: React.FC = () => {
   // Routing State
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+  const [isRateLimited, setIsRateLimited] = useState(false);
 
   // Layout Controls
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -85,6 +86,45 @@ export const App: React.FC = () => {
     };
   }, []);
 
+  // Listen for rate limiting events
+  useEffect(() => {
+    const handleRateLimited = () => {
+      setIsRateLimited(true);
+    };
+    window.addEventListener('ez_rate_limited', handleRateLimited);
+    return () => {
+      window.removeEventListener('ez_rate_limited', handleRateLimited);
+    };
+  }, []);
+
+  // Rate limited fallback error page
+  if (isRateLimited) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-6 text-center animate-fade-in select-none">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 max-w-md shadow-lg flex flex-col items-center justify-center">
+          <div className="w-16 h-16 rounded-full bg-amber-500/10 dark:bg-amber-500/20 text-amber-500 dark:text-amber-450 flex items-center justify-center mb-6 animate-pulse">
+            <span className="material-symbols-outlined text-[36px]">warning</span>
+          </div>
+          <h1 className="font-sans font-extrabold text-xl text-slate-900 dark:text-white tracking-tight">
+            Too Many Requests
+          </h1>
+          <p className="text-xs text-slate-500 dark:text-slate-455 font-medium mt-2 leading-relaxed">
+            You've exceeded the rate limit. To protect Twilio sandbox resources and prevent server abuse, please wait a moment before retrying.
+          </p>
+          <button
+            onClick={() => {
+              setIsRateLimited(false);
+              window.location.reload();
+            }}
+            className="mt-6 px-6 py-2.5 bg-primary hover:opacity-95 text-white rounded-lg font-sans text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-2"
+          >
+            <span className="material-symbols-outlined text-[16px]">refresh</span>
+            Retry Request
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Enforce Login view if not authenticated
   if (!token) {
@@ -97,15 +137,19 @@ export const App: React.FC = () => {
       case 'dashboard':
         return <DashboardIndex />;
       case 'leads':
-      case 'lead-detail':
         return (
           <LeadsList
             searchQuery={searchQuery}
-            selectedLeadId={selectedLeadId}
             setSelectedLeadId={setSelectedLeadId}
             setCurrentPage={setCurrentPage}
           />
         );
+      case 'lead-detail':
+        if (!selectedLeadId) {
+          setCurrentPage('leads');
+          return null;
+        }
+        return <LeadDetailPage leadId={selectedLeadId} setCurrentPage={setCurrentPage} />;
       case 'templates':
         return <TemplatesList searchQuery={searchQuery} />;
       case 'call-logs':

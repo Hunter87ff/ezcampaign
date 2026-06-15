@@ -32,10 +32,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     // { label: 'Event Calendar', icon: 'calendar_today' },
   ];
 
-  const placeholderBottomItems = [
-    // { label: 'Public Profile', icon: 'public' },
-    // { label: 'Billing', icon: 'payments' },
-  ];
+  const placeholderBottomItems: { label: string; icon: string }[] = [];
 
   return (
     <>

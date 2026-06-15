@@ -17,8 +17,8 @@ export default class ConfigController {
             const data = {
                 accountSid: config.twilio.sid,
                 authToken: config.twilio.auth_token,
-                whatsappNum: config.twilio.from,
-                phoneNum: (config.twilio as any).phone_number || process.env.TWILIO_PHONE_NUMBER || config.twilio.from?.replace("whatsapp:", "") || "+916291745601",
+                whatsappNum: config.twilio.wp_number,
+                phoneNum: (config.twilio as any).phone_number || process.env.TWILIO_PHONE_NUMBER || config.twilio.wp_number?.replace("whatsapp:", "") || "+916291745601",
                 templateSid: (config.twilio as any).template_sid || process.env.TWILIO_TEMPLATE_SID || "HXdc1311d3869ec9e14c9ced8023d7e3e7",
                 baseUrl: (config.twilio as any).baseUrl || process.env.TWILIO_HOOK_ENDPOINT || process.env.BASE_URL || config.endpoint || "http://localhost:8000"
             };
@@ -55,7 +55,8 @@ export default class ConfigController {
             // Update global config in-memory
             config.twilio.sid = accountSid;
             config.twilio.auth_token = authToken;
-            config.twilio.from = whatsappNum;
+            config.twilio.wp_number = whatsappNum;
+            config.twilio.ph_number = phoneNum;
             (config.twilio as any).phone_number = phoneNum;
             (config.twilio as any).template_sid = templateSid;
             (config.twilio as any).baseUrl = baseUrl;
@@ -74,7 +75,7 @@ export default class ConfigController {
             const updatedData = {
                 accountSid: config.twilio.sid,
                 authToken: config.twilio.auth_token,
-                whatsappNum: config.twilio.from,
+                whatsappNum: config.twilio.wp_number,
                 phoneNum: (config.twilio as any).phone_number,
                 templateSid: (config.twilio as any).template_sid,
                 baseUrl: (config.twilio as any).baseUrl

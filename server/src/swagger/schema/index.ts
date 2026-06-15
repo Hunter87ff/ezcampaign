@@ -174,11 +174,54 @@ export const components = {
         },
         SendMessageRequest: {
             type: "object",
-            required: ["leadId", "templateId"],
+            required: ["leadId"],
             properties: {
                 leadId: { type: "string", example: "6650f1a2b3c4d5e6f7a8b9c0" },
-                templateId: { type: "string", example: "6650f1a2b3c4d5e6f7a8b9c0" },
-                variables: { type: "object", example: { name: "John", company: "EzCampaign" } }
+                templateId: { type: "string", example: "6650f1a2b3c4d5e6f7a8b9c0", description: "Template ID (required if body is not provided)" },
+                body: { type: "string", example: "Hello John, this is a free text message!", description: "Free-text message body (required if templateId is not provided)" },
+                variables: { type: "object", example: { name: "John", company: "EzCampaign" }, description: "Template variable values" }
+            }
+        },
+        UpdateProfileRequest: {
+            type: "object",
+            required: ["name", "email"],
+            properties: {
+                name: { type: "string", example: "Admin User" },
+                email: { type: "string", format: "email", example: "admin@company.com" },
+                password: { type: "string", format: "password", example: "NewPass@123", description: "Optional new password" }
+            }
+        },
+        RegisterRequest: {
+            type: "object",
+            required: ["name", "email", "password", "role"],
+            properties: {
+                name: { type: "string", example: "New Manager" },
+                email: { type: "string", format: "email", example: "manager@company.com" },
+                password: { type: "string", format: "password", example: "Manager@123" },
+                role: { type: "string", enum: ["admin", "manager"], example: "manager" }
+            }
+        },
+        ConfigResponse: {
+            type: "object",
+            properties: {
+                accountSid: { type: "string", example: "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" },
+                authToken: { type: "string", example: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" },
+                whatsappNum: { type: "string", example: "whatsapp:+916291745601" },
+                phoneNum: { type: "string", example: "+916291745601" },
+                templateSid: { type: "string", example: "HXdc1311d3869ec9e14c9ced8023d7e3e7" },
+                baseUrl: { type: "string", format: "uri", example: "http://localhost:8000" }
+            }
+        },
+        UpdateConfigRequest: {
+            type: "object",
+            required: ["accountSid", "authToken", "whatsappNum", "phoneNum", "templateSid", "baseUrl"],
+            properties: {
+                accountSid: { type: "string", example: "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", description: "Twilio Account SID (AC followed by 32 hex chars)" },
+                authToken: { type: "string", example: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", description: "Twilio Auth Token" },
+                whatsappNum: { type: "string", example: "whatsapp:+916291745601", description: "WhatsApp sender number (format: whatsapp:+XX...)" },
+                phoneNum: { type: "string", example: "+916291745601", description: "Voice caller ID number (format: +XX...)" },
+                templateSid: { type: "string", example: "HXdc1311d3869ec9e14c9ced8023d7e3e7", description: "Twilio Content Template SID (HX followed by 32 hex chars)" },
+                baseUrl: { type: "string", format: "uri", example: "https://abc123.ngrok.io", description: "Ngrok webhook base URL" }
             }
         },
         InitiateCallRequest: {

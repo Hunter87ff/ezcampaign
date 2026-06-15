@@ -15,6 +15,7 @@ interface DashboardData {
   messagesPerDay: Record<string, number>;
   leadStatusBreakdown: Record<string, number>;
   topCampaigns: { name: string; cr: string; sent: number }[];
+  recentActivities: ActivityLog[];
 }
 
 export const DashboardIndex: React.FC = () => {
@@ -25,9 +26,8 @@ export const DashboardIndex: React.FC = () => {
   const fetchDashboardData = async () => {
     try {
       const summary = await apiService.getAnalyticsSummary();
-      const logs = await apiService.getActivityLogs();
       setAnalytics(summary);
-      setActivities(logs.slice(0, 5)); // show latest 5
+      setActivities(summary.recentActivities.slice(0, 5)); // show latest 5
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err);
     } finally {

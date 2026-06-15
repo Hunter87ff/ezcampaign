@@ -8,48 +8,79 @@ const STORAGE_KEYS = {
   TOKEN: 'ez_token',
 };
 
+const activeGetRequests = new Map<string, Promise<unknown>>();
+
 // Generic API caller helper
 async function apiRequest<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<{ status: number; message: string; data: T }> {
-  const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
-  
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(options.headers as Record<string, string>),
-  };
+  const method = options.method || 'GET';
+  const isGet = method.toUpperCase() === 'GET';
 
-  if (token) {
-    headers['Authorization'] = token;
-  }
-
-  const response = await fetch(`${BASE_URL}${path}`, {
-    ...options,
-    headers,
-  });
-
-  if (response.status === 204) {
-    return { status: 204, message: 'No content', data: null as unknown as T };
-  }
-
-  let json;
-  try {
-    json = await response.json();
-  } catch (err) {
-    throw new Error(`Failed to parse response: ${response.statusText}`, { cause: err });
-  }
-
-  if (!response.ok) {
-    if (response.status === 401) {
-      localStorage.removeItem(STORAGE_KEYS.TOKEN);
-      localStorage.removeItem(STORAGE_KEYS.USER);
-      window.dispatchEvent(new CustomEvent('ez_unauthorized'));
+  if (isGet) {
+    const active = activeGetRequests.get(path);
+    if (active) {
+      return active as Promise<{ status: number; message: string; data: T }>;
     }
-    throw new Error(json.message || `Request failed with status ${response.status}`);
   }
 
-  return json;
+  const promise = (async () => {
+    try {
+      const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(options.headers as Record<string, string>),
+      };
+
+      if (token) {
+        headers['Authorization'] = token;
+      }
+
+      const response = await fetch(`${BASE_URL}${path}`, {
+        ...options,
+        headers,
+      });
+
+      if (response.status === 204) {
+        return { status: 204, message: 'No content', data: null as unknown as T };
+      }
+
+      let json;
+      try {
+        json = await response.json();
+      } catch (err) {
+        throw new Error(`Failed to parse response: ${response.statusText}`, { cause: err });
+      }
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.removeItem(STORAGE_KEYS.TOKEN);
+          localStorage.removeItem(STORAGE_KEYS.USER);
+          window.dispatchEvent(new CustomEvent('ez_unauthorized'));
+        }
+        
+        if (response.status === 429) {
+          window.dispatchEvent(new CustomEvent('ez_rate_limited'));
+        }
+
+        throw new Error(json.message || `Request failed with status ${response.status}`);
+      }
+
+      return json;
+    } finally {
+      if (isGet) {
+        activeGetRequests.delete(path);
+      }
+    }
+  })();
+
+  if (isGet) {
+    activeGetRequests.set(path, promise);
+  }
+
+  return promise;
 }
 
 export const apiService = {
@@ -334,6 +365,7 @@ export const apiService = {
       messagesPerDay,
       leadStatusBreakdown,
       topCampaigns,
+      recentActivities: serverData.recentActivities,
     };
   },
 
