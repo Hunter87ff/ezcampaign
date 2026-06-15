@@ -37,7 +37,9 @@ export const CallLogsHistory: React.FC<CallLogsProps> = ({
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchCallLogs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]);
 
   // Map lead name/business type helper

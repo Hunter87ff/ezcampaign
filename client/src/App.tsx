@@ -73,6 +73,18 @@ export const App: React.FC = () => {
     };
   }, []);
 
+  // Listen for profile changes to keep headers and sidebar info fresh
+  useEffect(() => {
+    const handleProfileUpdate = () => {
+      setUser(apiService.getCurrentUser());
+      setToken(apiService.getToken());
+    };
+    window.addEventListener('ez_profile_updated', handleProfileUpdate);
+    return () => {
+      window.removeEventListener('ez_profile_updated', handleProfileUpdate);
+    };
+  }, []);
+
 
   // Enforce Login view if not authenticated
   if (!token) {
@@ -85,19 +97,15 @@ export const App: React.FC = () => {
       case 'dashboard':
         return <DashboardIndex />;
       case 'leads':
+      case 'lead-detail':
         return (
           <LeadsList
             searchQuery={searchQuery}
+            selectedLeadId={selectedLeadId}
             setSelectedLeadId={setSelectedLeadId}
             setCurrentPage={setCurrentPage}
           />
         );
-      case 'lead-detail':
-        if (!selectedLeadId) {
-          setCurrentPage('leads');
-          return null;
-        }
-        return <LeadDetailPage leadId={selectedLeadId} />;
       case 'templates':
         return <TemplatesList searchQuery={searchQuery} />;
       case 'call-logs':

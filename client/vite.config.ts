@@ -9,7 +9,10 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server : {
     port : 3000,
-    host : true
+    host : true,
+    allowedHosts : [
+      "local.sprucbot.tech"
+    ]
   },
   resolve: {
     alias: {

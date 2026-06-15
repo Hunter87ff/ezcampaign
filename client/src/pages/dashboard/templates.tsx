@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiService } from '../../api';
 import type { Template, BusinessType } from '../../types';
+import { ConfirmDialog } from '../../components/confirmDialog';
 
 interface TemplatesProps {
   searchQuery: string;
@@ -10,6 +11,10 @@ export const TemplatesList: React.FC<TemplatesProps> = ({ searchQuery }) => {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSegment, setSelectedSegment] = useState('all');
+
+  // Confirm Dialog states
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<{ id: string; name: string } | null>(null);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -34,16 +39,26 @@ export const TemplatesList: React.FC<TemplatesProps> = ({ searchQuery }) => {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchTemplates();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSegment]);
 
-  const handleDelete = async (id: string, name: string) => {
-    if (window.confirm(`Are you sure you want to delete template "${name}"?`)) {
+  const handleDelete = (id: string, name: string) => {
+    setTemplateToDelete({ id, name });
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (templateToDelete) {
       try {
-        await apiService.deleteTemplate(id);
+        await apiService.deleteTemplate(templateToDelete.id);
         fetchTemplates();
       } catch (err) {
         console.error('Failed to delete template:', err);
+      } finally {
+        setDeleteConfirmOpen(false);
+        setTemplateToDelete(null);
       }
     }
   };
@@ -80,8 +95,8 @@ export const TemplatesList: React.FC<TemplatesProps> = ({ searchQuery }) => {
       setFormSid('');
       setFormBody('');
       fetchTemplates();
-    } catch (err: any) {
-      setFormError(err.message || 'Failed to create template.');
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Failed to create template.');
     }
   };
 
@@ -334,6 +349,18 @@ export const TemplatesList: React.FC<TemplatesProps> = ({ searchQuery }) => {
           </div>
         </div>
       )}
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirmOpen}
+        title="Delete Template"
+        message={`Are you sure you want to permanently delete WhatsApp template "${templateToDelete?.name}"? Contacts using this template SID will fall back to default settings.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteConfirmOpen(false)}
+      />
 
     </div>
   );

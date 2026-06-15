@@ -63,6 +63,7 @@ export interface ActivityLog {
   _id: string;
   leadId?: string;
   action: 'message_sent' | 'call_initiated' | 'lead_created' | 'reply_received';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   details?: Record<string, any>;
   createdAt: string;
 }

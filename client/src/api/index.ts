@@ -30,14 +30,14 @@ async function apiRequest<T>(
   });
 
   if (response.status === 204) {
-    return { status: 204, message: 'No content', data: null as any };
+    return { status: 204, message: 'No content', data: null as unknown as T };
   }
 
   let json;
   try {
     json = await response.json();
   } catch (err) {
-    throw new Error(`Failed to parse response: ${response.statusText}`);
+    throw new Error(`Failed to parse response: ${response.statusText}`, { cause: err });
   }
 
   if (!response.ok) {
@@ -89,6 +89,30 @@ export const apiService = {
   logout(): void {
     localStorage.removeItem(STORAGE_KEYS.USER);
     localStorage.removeItem(STORAGE_KEYS.TOKEN);
+  },
+
+  async updateProfile(profileData: { name: string; email: string; password?: string }): Promise<{ token: string; user: User }> {
+    const res = await apiRequest<{ token: string; admin: User }>('/api/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify(profileData),
+    });
+    
+    const { token, admin } = res.data;
+    localStorage.setItem(STORAGE_KEYS.TOKEN, token);
+    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(admin));
+    
+    // Dispatch event to notify application components of the profile update
+    window.dispatchEvent(new CustomEvent('ez_profile_updated', { detail: { user: admin } }));
+    
+    return { token, user: admin };
+  },
+
+  async registerUser(userData: { name: string; email: string; password: string; role: string }): Promise<{ user: User }> {
+    const res = await apiRequest<{ user: User }>('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+    return res.data;
   },
 
   // Leads CRUD
@@ -340,6 +364,19 @@ export const apiService = {
 
     // Notify window components to refresh
     window.dispatchEvent(new CustomEvent('ez_message_received', { detail: { leadId } }));
+  },
+
+  async getServerConfig(): Promise<{ accountSid: string; authToken: string; whatsappNum: string; phoneNum: string; templateSid: string; baseUrl: string }> {
+    const res = await apiRequest<{ accountSid: string; authToken: string; whatsappNum: string; phoneNum: string; templateSid: string; baseUrl: string }>('/api/config');
+    return res.data;
+  },
+
+  async updateServerConfig(data: { accountSid: string; authToken: string; whatsappNum: string; phoneNum: string; templateSid: string; baseUrl: string }): Promise<{ accountSid: string; authToken: string; whatsappNum: string; phoneNum: string; templateSid: string; baseUrl: string }> {
+    const res = await apiRequest<{ accountSid: string; authToken: string; whatsappNum: string; phoneNum: string; templateSid: string; baseUrl: string }>('/api/config', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return res.data;
   },
 };
 

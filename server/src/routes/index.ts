@@ -7,6 +7,7 @@ import callRoutes from "./calls";
 import webhookRoutes from "./webhooks";
 import twimlRoutes from "./twiml";
 import analyticsRoutes from "./analytics";
+import configRoutes from "./config";
 
 const router = Router();
 
@@ -16,6 +17,7 @@ router.use("/api/templates", templateRoutes);
 router.use("/api/messages", messageRoutes);
 router.use("/api/calls", callRoutes);
 router.use("/api/analytics", analyticsRoutes);
+router.use("/api/config", configRoutes);
 router.use("/webhook", webhookRoutes);
 router.use("/twiml", twimlRoutes);
 
