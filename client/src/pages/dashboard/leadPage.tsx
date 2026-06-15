@@ -35,8 +35,7 @@ export const LeadDetailPage: React.FC<LeadDetailProps> = ({ leadId, setCurrentPa
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [templateVariables, setTemplateVariables] = useState<Record<string, string>>({});
 
-
-
+  const [isCalling, setIsCalling] = useState(false);
 
   // Notes state
   const [notesText, setNotesText] = useState('');
@@ -126,16 +125,24 @@ export const LeadDetailPage: React.FC<LeadDetailProps> = ({ leadId, setCurrentPa
         setLead(updated);
       }
 
-      // Simulate incoming Sandbox response after 4 seconds
-      setTimeout(() => {
-        apiService.simulateIncomingReply(lead._id, lead.mobileNumber);
-      }, 4000);
     } catch (err) {
       console.error('Failed to send text message:', err);
     }
   };
 
-
+  // Trigger outbound call via server API
+  const handleInitiateCall = async () => {
+    if (!lead || isCalling) return;
+    setIsCalling(true);
+    try {
+      await apiService.initiateCall(lead._id);
+      fetchLeadDetails(); // Refresh logs
+    } catch (err) {
+      console.error('Failed to initiate voice call:', err);
+    } finally {
+      setIsCalling(false);
+    }
+  };
 
   // Open Template Modal Selection
   const handleOpenTemplateModal = () => {
@@ -257,11 +264,12 @@ export const LeadDetailPage: React.FC<LeadDetailProps> = ({ leadId, setCurrentPa
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Outbound call button - Disabled */}
+            {/* Outbound call button */}
             <button
-              disabled={true}
-              className="p-1.5 rounded-lg text-slate-405/40 dark:text-slate-605/40 cursor-not-allowed flex items-center justify-center"
-              title="Voice Calling Disabled"
+              onClick={handleInitiateCall}
+              disabled={isCalling}
+              className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-emerald-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+              title={isCalling ? "Initiating Call..." : "Call Lead"}
             >
               <span className="material-symbols-outlined text-[20px]">call</span>
             </button>
