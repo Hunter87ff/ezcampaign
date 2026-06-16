@@ -6,7 +6,9 @@
   "scripts": {
     "start": "bun run index.ts",
     "dev": "bun --watch index.ts",
-    "build" : "bun build index.ts --minify --target=node --outfile ./dist/server.js"
+    "build": "bun build index.ts --minify --target=node --outfile ./dist/index.js",
+    "build:docker": "docker build -t ezcampaign-server:latest .",
+    "start:docker": "docker run --env-file .env -p 8000:8000 ezcampaign-server:latest"
   },
   "imports": {
     "@/*": "./src/*",

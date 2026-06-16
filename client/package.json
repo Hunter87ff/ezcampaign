@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:docker": "docker build -t ezcampaign-client:latest .",
+    "start:docker": "docker run -p 80:80 ezcampaign-client:latest"
   },
   "dependencies": {
     "react": "^19.2.6",
