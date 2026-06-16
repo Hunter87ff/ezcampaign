@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import twilio from "twilio";
 import config from "@/config";
+import { type CallFilter } from "@/types";
 
 export default class CallController {
     /**
@@ -18,7 +19,7 @@ export default class CallController {
                 return res.handler.badRequest(res, "Validation Error", validation.error.format());
             }
 
-            const { leadId } = validation.data;
+            const { leadId, message } = validation.data;
 
             // Fetch lead
             const lead = await req.db.Lead.findOne({ _id: leadId, isDeleted: false });
@@ -33,25 +34,22 @@ export default class CallController {
 
             const client = twilio(config.twilio.sid, config.twilio.auth_token);
 
-            // Determine caller number
-            const fromNumber = config.twilio.wp_number || "";
-            if (!fromNumber) {
-                return res.handler.error(
-                    res,
-                    "Twilio voice caller number (TWILIO_PHONE_NUMBER) is not configured"
-                );
-            }
-
             // Determine callback BASE_URL
-            const baseUrl = config.twilio.hook_endpoint || config.endpoint;
+            const baseUrl = config.twilio.hook_endpoint;
+
+            const twimlMessage = `
+                <Response>
+                    <Say voice="alice">${message}</Say>
+                </Response>
+            `;
 
             // Make Twilio Voice Call
             let call;
             try {
                 call = await client.calls.create({
-                    to: "whatsapp:" + lead.mobileNumber,
-                    from: fromNumber,
-                    url: `${baseUrl}/twiml/connect/${lead._id}`,
+                    to: lead.mobileNumber,
+                    from: config.twilio.ph_number,
+                    twiml: twimlMessage,
                     statusCallback: `${baseUrl}/webhook/call/status`,
                     statusCallbackEvent: ["initiated", "ringing", "answered", "completed"]
                 });
@@ -95,8 +93,8 @@ export default class CallController {
      */
     static async list(req: Request, res: Response) {
         try {
-            const { leadId, status, page = 1, limit = 10 } = req.query;
-            const filterQuery: any = {};
+            const { leadId, status, page = 1, limit = 10 } = req.query as CallFilter;
+            const filterQuery: CallFilter = {};
 
             if (leadId) {
                 filterQuery.leadId = leadId;
@@ -110,8 +108,8 @@ export default class CallController {
             const limitNum = Math.max(1, Number(limit));
             const skip = (pageNum - 1) * limitNum;
 
-            const total = await req.db.CallLog.countDocuments(filterQuery);
-            const calls = await req.db.CallLog.find(filterQuery)
+            const total = await req.db.CallLog.countDocuments(filterQuery as any);
+            const calls = await req.db.CallLog.find(filterQuery as any)
                 .sort({ startTime: -1 })
                 .skip(skip)
                 .limit(limitNum)

@@ -62,8 +62,8 @@ async function init(req: Request, res: Response, next: NextFunction) {
 
 
 const limiter = RateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 150, // limit each IP to 100 requests per windowMs
+    windowMs: 1 * 60 * 1000, // 1 minutes
+    max: 150, // limit each IP to 100r/s
     message: 'Too many requests from this IP, please try again later',
 });
 

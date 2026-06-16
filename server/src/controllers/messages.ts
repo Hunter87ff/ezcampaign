@@ -84,7 +84,7 @@ export default class MessageController {
                 try {
                     const message = await client.messages.create({
                         contentSid: template.templateSid,
-                        from: config.twilio.wp_number || "whatsapp:+916291745601",
+                        from: config.twilio.wp_number,
                         to: `whatsapp:${lead.mobileNumber}`,
                         contentVariables: JSON.stringify(twilioVariables)
                     });

@@ -36,6 +36,10 @@ export const LeadDetailPage: React.FC<LeadDetailProps> = ({ leadId, setCurrentPa
   const [templateVariables, setTemplateVariables] = useState<Record<string, string>>({});
 
   const [isCalling, setIsCalling] = useState(false);
+  const [isCallModalOpen, setIsCallModalOpen] = useState(false);
+  const [callMessage, setCallMessage] = useState('');
+  const [activeCall, setActiveCall] = useState<CallLog | null>(null);
+  const [callStatus, setCallStatus] = useState<string>('initiated');
 
   // Notes state
   const [notesText, setNotesText] = useState('');
@@ -130,16 +134,54 @@ export const LeadDetailPage: React.FC<LeadDetailProps> = ({ leadId, setCurrentPa
     }
   };
 
-  // Trigger outbound call via server API
+  // Poll active call status from the server
+  const startCallPolling = (callId: string) => {
+    const intervalId = setInterval(async () => {
+      try {
+        const callLogs = await apiService.getCallLogs(leadId);
+        const currentCall = callLogs.find((c) => c._id === callId);
+        if (currentCall) {
+          setCallStatus(currentCall.status);
+          if (['completed', 'failed', 'busy', 'no-answer', 'canceled'].includes(currentCall.status)) {
+            clearInterval(intervalId);
+            // Wait 2.5 seconds to show the final status, then close overlay
+            setTimeout(() => {
+              setActiveCall(null);
+              setIsCalling(false);
+              fetchLeadDetails(); // Refresh logs to update sidebar
+            }, 2500);
+          }
+        }
+      } catch (err) {
+        console.error('Error polling call status:', err);
+        clearInterval(intervalId);
+        setIsCalling(false);
+        setActiveCall(null);
+      }
+    }, 2000);
+  };
+
+  // Open the Message Input Modal before starting the call
+  const handleOpenCallModal = () => {
+    if (!lead) return;
+    setCallMessage(`Hello ${lead.name}, this is an automated message from EZ Campaign to check on your recent inquiry.`);
+    setIsCallModalOpen(true);
+  };
+
+  // Trigger outbound call via server API with custom message text
   const handleInitiateCall = async () => {
-    if (!lead || isCalling) return;
+    if (!lead || !callMessage.trim()) return;
+    setIsCallModalOpen(false);
     setIsCalling(true);
+    setCallStatus('initiated');
+    
     try {
-      await apiService.initiateCall(lead._id);
-      fetchLeadDetails(); // Refresh logs
+      const log = await apiService.initiateCall(lead._id, callMessage.trim());
+      setActiveCall(log);
+      setCallStatus(log.status || 'initiated');
+      startCallPolling(log._id);
     } catch (err) {
       console.error('Failed to initiate voice call:', err);
-    } finally {
       setIsCalling(false);
     }
   };
@@ -266,7 +308,7 @@ export const LeadDetailPage: React.FC<LeadDetailProps> = ({ leadId, setCurrentPa
           <div className="flex items-center gap-2">
             {/* Outbound call button */}
             <button
-              onClick={handleInitiateCall}
+              onClick={handleOpenCallModal}
               disabled={isCalling}
               className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-emerald-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
               title={isCalling ? "Initiating Call..." : "Call Lead"}
@@ -642,6 +684,120 @@ export const LeadDetailPage: React.FC<LeadDetailProps> = ({ leadId, setCurrentPa
                 Send Message
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Call Message Input Modal */}
+      {isCallModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-[500px] max-w-full rounded-2xl shadow-xl overflow-hidden animate-zoom-in text-slate-800 dark:text-slate-100">
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-805 flex justify-between items-center bg-slate-50 dark:bg-slate-800/80">
+              <div>
+                <h3 className="font-sans font-bold text-sm text-slate-955 dark:text-white text-left">
+                  Initiate WhatsApp Call
+                </h3>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-left mt-0.5">
+                  To: {lead.name} ({lead.mobileNumber})
+                </p>
+              </div>
+              <button
+                onClick={() => setIsCallModalOpen(false)}
+                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 text-left">
+              <div className="flex flex-col gap-1.5">
+                <label className="block text-[10px] font-sans font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider">
+                  Message to say on Call (Text-to-Speech)
+                </label>
+                <textarea
+                  rows={4}
+                  value={callMessage}
+                  onChange={(e) => setCallMessage(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-xs outline-none focus:ring-2 focus:ring-primary/20 text-slate-850 dark:text-slate-100 font-sans font-medium resize-none transition-all placeholder:text-slate-400"
+                  placeholder="Type the exact message the automated system will read to the lead..."
+                  required
+                />
+                <p className="text-[10px] text-slate-450 dark:text-slate-500 leading-normal mt-1">
+                  When the contact answers, Twilio Voice will read this message using natural Text-to-Speech synthesis and hang up.
+                </p>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3">
+              <button
+                onClick={() => setIsCallModalOpen(false)}
+                className="px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-550 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleInitiateCall}
+                disabled={!callMessage.trim()}
+                className="px-5 py-2 bg-primary dark:bg-emerald-600 text-white text-xs font-bold rounded-lg hover:opacity-95 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+              >
+                <span className="material-symbols-outlined text-[16px]">call</span>
+                Start Call
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Calling Screen / Status Overlay */}
+      {activeCall && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-[380px] rounded-2xl shadow-2xl p-8 text-center animate-zoom-in text-slate-850 dark:text-slate-100">
+            {/* Pulsating calling circle */}
+            <div className="flex justify-center mb-6">
+              <div className="relative">
+                <div className="absolute inset-0 rounded-full bg-primary/20 dark:bg-emerald-500/20 animate-ping" />
+                <div className="w-20 h-20 rounded-full bg-primary/10 text-primary dark:bg-emerald-500/10 dark:text-emerald-400 border border-primary/20 dark:border-emerald-500/20 flex items-center justify-center shadow-md relative z-10">
+                  <span className="material-symbols-outlined text-[40px] animate-pulse">call</span>
+                </div>
+              </div>
+            </div>
+
+            <h3 className="font-sans font-extrabold text-base text-slate-900 dark:text-white mb-1">
+              Calling {lead.name}
+            </h3>
+            <p className="text-xs font-mono text-slate-450 dark:text-slate-500 mb-6">
+              {lead.mobileNumber}
+            </p>
+
+            <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 p-4 rounded-xl mb-6 flex flex-col items-center gap-1">
+              <span className="text-[10px] text-slate-400 dark:text-slate-505 uppercase tracking-wider font-bold">
+                Connection Status
+              </span>
+              <span className={`text-xs font-bold capitalize px-2.5 py-0.5 rounded-full border ${
+                callStatus === 'in-progress' || callStatus === 'completed'
+                  ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50'
+                  : ['failed', 'busy', 'no-answer', 'canceled'].includes(callStatus)
+                    ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/30 dark:text-rose-450 dark:border-rose-900/50 animate-shake'
+                    : 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/50'
+              }`}>
+                {callStatus}
+              </span>
+            </div>
+
+            <div className="text-[10px] text-slate-400 dark:text-slate-500 font-medium px-4 mb-4 line-clamp-3 text-center">
+              Saying: "{callMessage}"
+            </div>
+
+            {/* Call logging status indicator */}
+            {['completed', 'failed', 'busy', 'no-answer', 'canceled'].includes(callStatus) && (
+              <div className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1.5 mb-2 animate-fade-in">
+                <svg className="animate-spin h-3.5 w-3.5 text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Closing and updating call log...
+              </div>
+            )}
           </div>
         </div>
       )}

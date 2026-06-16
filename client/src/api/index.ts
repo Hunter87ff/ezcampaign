@@ -268,9 +268,9 @@ export const apiService = {
   },
 
   // Calling
-  async initiateCall(leadId: string): Promise<CallLog> {
+  async initiateCall(leadId: string, message: string): Promise<CallLog> {
     // 1. Zod Validation
-    const validation = validator.call.initiateCallSchema.safeParse({ leadId });
+    const validation = validator.call.initiateCallSchema.safeParse({ leadId, message });
     if (!validation.success) {
       const errorMsg = validation.error.issues.map((e) => e.message).join(', ');
       throw new Error(errorMsg);

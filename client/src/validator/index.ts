@@ -62,6 +62,7 @@ export const sendMessageSchema = z.object({
 // 5. Call Schemas
 export const initiateCallSchema = z.object({
   leadId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid lead ID'),
+  message: z.string().min(1, 'Message is required'),
 });
 
 export const validator = {

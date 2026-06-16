@@ -10,6 +10,7 @@ export default class TwiMLController {
     static async connect(req: Request, res: Response) {
         try {
             const { leadId } = req.params;
+            const message = req.query.message as string | undefined;
 
             // Fetch lead
             const lead = await req.db.Lead.findOne({ _id: leadId, isDeleted: false });
@@ -21,8 +22,13 @@ export default class TwiMLController {
             }
 
             const voiceResponse = new twiml.VoiceResponse();
-            voiceResponse.say(`Connecting you to ${lead.name}`);
-            voiceResponse.dial().number(lead.mobileNumber);
+            if (message) {
+                voiceResponse.say(message);
+                voiceResponse.hangup();
+            } else {
+                voiceResponse.say(`Connecting you to ${lead.name}`);
+                voiceResponse.dial().number(lead.mobileNumber);
+            }
 
             res.type("text/xml");
             return res.send(voiceResponse.toString());

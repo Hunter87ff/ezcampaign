@@ -226,9 +226,10 @@ export const components = {
         },
         InitiateCallRequest: {
             type: "object",
-            required: ["leadId"],
+            required: ["leadId", "message"],
             properties: {
-                leadId: { type: "string", example: "6650f1a2b3c4d5e6f7a8b9c0" }
+                leadId: { type: "string", example: "6650f1a2b3c4d5e6f7a8b9c0" },
+                message: { type: "string", example: "Hello, this is a test call from EZ Campaign. The call is now connected." }
             }
         },
         AnalyticsSummary: {
