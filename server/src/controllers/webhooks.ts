@@ -12,6 +12,7 @@ export default class WebhookController {
             if (!req.validator) {
                 return res.status(500).send("Validator not initialized");
             }
+            console.log("Incoming WhatsApp Webhook:", req.body)
             const validation = req.validator.webhook.incomingWhatsAppWebhookSchema.safeParse(req.body);
             if (!validation.success) {
                 // Return valid empty TwiML anyway so Twilio doesn't retry
@@ -84,6 +85,7 @@ export default class WebhookController {
             }
 
             const { MessageSid, MessageStatus } = validation.data;
+            console.log("WhatsApp Status Webhook:", req.body)
 
             // Map Twilio statuses to our schema statuses
             // our schema: queued | sent | delivered | read | failed

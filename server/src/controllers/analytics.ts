@@ -1,6 +1,12 @@
+import cache from "@/utils/cache";
+import { type Summary } from "@/types/response";
 import type { Request, Response } from "express";
 
 export default class AnalyticsController {
+    static summaryCache = new cache<Summary>(null, 1 * 60 * 1000);
+
+
+
     /**
      * Get dashboard summary statistics, counts, and breakdown.
      * @route GET /api/analytics/summary
@@ -8,6 +14,11 @@ export default class AnalyticsController {
      */
     static async summary(req: Request, res: Response) {
         try {
+            const cachedSummary = AnalyticsController.summaryCache.get();
+            if (cachedSummary) {
+                res.set("Cache-ExpireAt", AnalyticsController.summaryCache.exp.toISOString());
+                return res.handler.success(res, "Dashboard analytics retrieved successfully", cachedSummary);
+            }
             // 1. Total Leads
             const totalLeads = await req.db.Lead.countDocuments({ isDeleted: false });
 
@@ -61,7 +72,7 @@ export default class AnalyticsController {
                 { $sort: { _id: 1 } }
             ]);
 
-            return res.handler.success(res, "Dashboard analytics retrieved successfully", {
+            const summary : Summary = {
                 leads: {
                     total: totalLeads,
                     statusBreakdown: statusMap,
@@ -78,10 +89,22 @@ export default class AnalyticsController {
                 },
                 activeCampaigns,
                 recentActivities
-            });
+            }
+
+            AnalyticsController.summaryCache.set(summary);
+
+            return res.handler.success(
+                res, 
+                "Dashboard analytics retrieved successfully", 
+                summary
+            );
 
         } catch (error: any) {
-            return res.handler.error(res, error.message || "Failed to retrieve dashboard analytics", { error });
+            return res.handler.error(
+                res, 
+                error.message || "Failed to retrieve dashboard analytics", 
+                { error }
+            );
         }
     }
 }

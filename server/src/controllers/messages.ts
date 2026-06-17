@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import twilio from "twilio";
+import { client } from "@/utils/twilio"
 import config from "@/config";
 
 export default class MessageController {
@@ -11,26 +11,34 @@ export default class MessageController {
     static async send(req: Request, res: Response) {
         try {
             if (!req.validator) {
-                return res.handler.error(res, "Validator middleware not initialized");
+                return res.handler.error(
+                    res,
+                    "Validator middleware not initialized"
+                );
             }
             const validation = req.validator.message.sendMessageSchema.safeParse(req.body);
             if (!validation.success) {
-                return res.handler.badRequest(res, "Validation Error", validation.error.format());
+                return res.handler.badRequest(
+                    res,
+                    "Validation Error",
+                    validation.error.format()
+                );
             }
 
             const { leadId, templateId, body, variables } = validation.data;
 
             // Fetch lead
-            const lead = await req.db.Lead.findOne({ _id: leadId, isDeleted: false });
-            if (!lead) {
-                return res.handler.notFound(res, "Lead not found");
-            }
+            const lead = await req.db.Lead.findOne({
+                _id: leadId,
+                isDeleted: false
+            });
 
-            // Instantiate Twilio client
-            if (!config.twilio.sid || !config.twilio.auth_token) {
-                return res.handler.error(res, "Twilio configuration credentials missing on server");
+            if (!lead) {
+                return res.handler.notFound(
+                    res,
+                    "Lead not found"
+                );
             }
-            const client = twilio(config.twilio.sid, config.twilio.auth_token);
 
             let bodyText = "";
             let twilioSid = "";
@@ -86,6 +94,7 @@ export default class MessageController {
                         contentSid: template.templateSid,
                         from: config.twilio.wp_number,
                         to: `whatsapp:${lead.mobileNumber}`,
+                        statusCallback: `${config.twilio.hook_endpoint}/webhook/whatsapp/status`,
                         contentVariables: JSON.stringify(twilioVariables)
                     });
                     twilioSid = message.sid;
@@ -94,31 +103,36 @@ export default class MessageController {
                     res.logger.error("Twilio send failed:", twilioError);
                     return res.handler.badRequest(res, `Twilio delivery failed: ${twilioError.message}`, twilioError);
                 }
-            } else if (body) {
-                bodyText = body;
-                // Send free text via Twilio
-                try {
-                    const message = await client.messages.create({
-                        from: config.twilio.wp_number || "whatsapp:+916291745601",
-                        to: `whatsapp:${lead.mobileNumber}`,
-                        body: bodyText
-                    });
-                    twilioSid = message.sid;
-                    status = message.status;
-                } catch (twilioError: any) {
-                    res.logger.error("Twilio send failed:", twilioError);
-                    return res.handler.badRequest(res, `Twilio delivery failed: ${twilioError.message}`, twilioError);
-                }
-            } else {
-                return res.handler.badRequest(res, "Either templateId or body is required");
+            } 
+            
+            if (!body) {
+                return res.handler.badRequest(
+                    res,
+                    "Either templateId or body is required"
+                );
             }
-
+            
+            // Send free text via Twilio
+            try {
+                const message = await client.messages.create({
+                    from: config.twilio.wp_number,
+                    to: `whatsapp:${lead.mobileNumber}`,
+                    body: body,
+                    statusCallback: `${config.twilio.hook_endpoint}/webhook/whatsapp/status`
+                });
+                twilioSid = message.sid;
+                status = message.status;
+            } catch (twilioError: any) {
+                res.logger.error("Twilio send failed:", twilioError);
+                return res.handler.badRequest(res, `Twilio delivery failed: ${twilioError.message}`, twilioError);
+            }
+             
             // Save MessageLog
             const messageLog = new req.db.MessageLog({
                 leadId: lead._id,
                 direction: "outbound",
                 templateSid: templateSid,
-                body: bodyText,
+                body: body,
                 twilioSid: twilioSid,
                 status: status === "queued" ? "queued" : (status as any),
                 sentAt: new Date()
@@ -139,7 +153,7 @@ export default class MessageController {
                     twilioSid: twilioSid,
                     templateSid: templateSid,
                     status: status,
-                    body: bodyText
+                    body: body
                 }
             });
             await activity.save();
