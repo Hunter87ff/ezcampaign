@@ -129,4 +129,22 @@ export default class CallController {
             return res.handler.error(res, error.message || "Failed to retrieve call logs", { error });
         }
     }
+
+    /**
+     * Delete a call log by ID.
+     * @route DELETE /api/calls/:id
+     * @access private
+     */
+    static async delete(req: Request, res: Response) {
+        try {
+            const { id } = req.params;
+            const call = await req.db.CallLog.findByIdAndDelete(id);
+            if (!call) {
+                return res.handler.notFound(res, "Call log not found");
+            }
+            return res.handler.success(res, "Call log deleted successfully", { id });
+        } catch (error: any) {
+            return res.handler.error(res, error.message || "Failed to delete call log", { error });
+        }
+    }
 }

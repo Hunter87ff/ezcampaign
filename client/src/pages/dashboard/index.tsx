@@ -13,6 +13,7 @@ interface DashboardData {
   activeCampaigns: number;
   conversionRate: number;
   messagesPerDay: Record<string, number>;
+  messagesTrend: Array<{ _id: string; count: number }>;
   leadStatusBreakdown: Record<string, number>;
   topCampaigns: { name: string; cr: string; sent: number }[];
   recentActivities: ActivityLog[];
@@ -142,7 +143,7 @@ export const DashboardIndex: React.FC = () => {
       {/* Main Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <DailyBarChart messagesPerDay={analytics.messagesPerDay} />
+          <DailyBarChart messagesPerDay={analytics.messagesPerDay} messagesTrend={analytics.messagesTrend} />
         </div>
         <div>
           <StatusDonut leadStatusBreakdown={analytics.leadStatusBreakdown} totalLeads={analytics.totalLeads} />

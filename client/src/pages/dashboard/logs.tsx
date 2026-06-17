@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { apiService } from '../../api';
 import type { CallLog, Lead } from '../../types';
+import { ConfirmDialog } from '../../components/confirmDialog';
 
 interface CallLogsProps {
   searchQuery: string;
@@ -21,6 +22,18 @@ export const CallLogsHistory: React.FC<CallLogsProps> = ({
   const [currentPageNum, setCurrentPageNum] = useState(1);
   const itemsPerPage = 8;
 
+  // Container reference for absolute positioning
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Context Menu States
+  const [activeMenuLogId, setActiveMenuLogId] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
+  const [menuAnchor, setMenuAnchor] = useState<'button' | 'cursor'>('button');
+
+  // Deletion States
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [logToDelete, setLogToDelete] = useState<{ id: string; name: string } | null>(null);
+
   const fetchCallLogs = async () => {
     setLoading(true);
     try {
@@ -40,6 +53,84 @@ export const CallLogsHistory: React.FC<CallLogsProps> = ({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchCallLogs();
   }, [searchQuery]);
+
+  // Click outside to close context menu
+  useEffect(() => {
+    const handleDismissMenu = () => {
+      setActiveMenuLogId(null);
+    };
+    window.addEventListener('click', handleDismissMenu);
+    window.addEventListener('contextmenu', handleDismissMenu);
+    return () => {
+      window.removeEventListener('click', handleDismissMenu);
+      window.removeEventListener('contextmenu', handleDismissMenu);
+    };
+  }, []);
+
+  // Context Menu Action Dispatcher
+  const handleMenuAction = (action: 'view lead' | 'view chat' | 'delete', logId: string) => {
+    setActiveMenuLogId(null);
+    const targetLog = logs.find((l) => l._id === logId);
+    if (!targetLog) return;
+    const info = getLeadInfo(targetLog.leadId);
+
+    if (action === 'view lead' || action === 'view chat') {
+      setSelectedLeadId(info._id);
+      setCurrentPage('lead-detail');
+    } else if (action === 'delete') {
+      setLogToDelete({ id: targetLog._id, name: info.name });
+      setDeleteConfirmOpen(true);
+    }
+  };
+
+  // Three-dot button handler
+  const handleThreeDotClick = (e: React.MouseEvent, logId: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (activeMenuLogId === logId && menuAnchor === 'button') {
+      setActiveMenuLogId(null);
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    if (containerRect) {
+      setMenuPosition({
+        x: rect.right - containerRect.left - 176,
+        y: rect.bottom - containerRect.top + 6,
+      });
+    }
+    setMenuAnchor('button');
+    setActiveMenuLogId(logId);
+  };
+
+  // Right-click context handler
+  const handleRowContextMenu = (e: React.MouseEvent, logId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    if (containerRect) {
+      setMenuPosition({
+        x: e.clientX - containerRect.left,
+        y: e.clientY - containerRect.top,
+      });
+    }
+    setMenuAnchor('cursor');
+    setActiveMenuLogId(logId);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (logToDelete) {
+      try {
+        await apiService.deleteCallLog(logToDelete.id);
+        fetchCallLogs();
+      } catch (err) {
+        console.error('Failed to delete call log:', err);
+      } finally {
+        setDeleteConfirmOpen(false);
+        setLogToDelete(null);
+      }
+    }
+  };
 
   // Robust lead info mapper that handles populated objects or simple string IDs
   const getLeadInfo = (leadId: string | Lead | null | undefined) => {
@@ -119,7 +210,7 @@ export const CallLogsHistory: React.FC<CallLogsProps> = ({
   };
 
   return (
-    <div className="p-6 max-w-[1440px] mx-auto animate-fade-in select-none">
+    <div ref={containerRef} className="p-6 max-w-[1440px] mx-auto animate-fade-in select-none relative">
       
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8">
@@ -210,7 +301,11 @@ export const CallLogsHistory: React.FC<CallLogsProps> = ({
                   {currentLogs.map((log) => {
                     const info = getLeadInfo(log.leadId);
                     return (
-                      <tr key={log._id} className="hover:bg-slate-50/40 dark:hover:bg-slate-800/20 transition-colors duration-150 group">
+                      <tr
+                        key={log._id}
+                        onContextMenu={(e) => handleRowContextMenu(e, log._id)}
+                        className="hover:bg-slate-50/40 dark:hover:bg-slate-800/20 transition-colors duration-150 group cursor-pointer"
+                      >
                         <td className="px-4 py-2.5 font-bold text-slate-900 dark:text-white">
                           <button
                             onClick={() => {
@@ -249,16 +344,12 @@ export const CallLogsHistory: React.FC<CallLogsProps> = ({
                         <td className="px-4 py-2.5 font-bold text-primary dark:text-emerald-400 text-xs">
                           {log.status === 'completed' ? formatDuration(log.duration) : '--'}
                         </td>
-                        <td className="px-4 py-2.5 text-right">
+                        <td className="px-4 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
                           <button
-                            onClick={() => {
-                              setSelectedLeadId(info._id);
-                              setCurrentPage('lead-detail');
-                            }}
-                            className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer flex items-center justify-center ml-auto"
-                            title="Open Recipient Conversation"
+                            onClick={(e) => handleThreeDotClick(e, log._id)}
+                            className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-805 text-slate-450 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer flex items-center justify-center ml-auto"
                           >
-                            <span className="material-symbols-outlined text-[18px]">chat</span>
+                            <span className="material-symbols-outlined text-[18px]">more_vert</span>
                           </button>
                         </td>
                       </tr>
@@ -275,6 +366,7 @@ export const CallLogsHistory: React.FC<CallLogsProps> = ({
                 return (
                   <div
                     key={log._id}
+                    onContextMenu={(e) => handleRowContextMenu(e, log._id)}
                     onClick={() => {
                       setSelectedLeadId(info._id);
                       setCurrentPage('lead-detail');
@@ -282,7 +374,7 @@ export const CallLogsHistory: React.FC<CallLogsProps> = ({
                     className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/85 p-3 rounded-xl shadow-3xs hover:border-primary/40 transition-all text-left flex items-center justify-between cursor-pointer group"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-850 text-slate-600 dark:text-slate-355 flex items-center justify-center font-bold text-xs shrink-0 shadow-3xs border border-slate-200/50 dark:border-slate-700/50">
+                      <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-855 text-slate-600 dark:text-slate-355 flex items-center justify-center font-bold text-xs shrink-0 shadow-3xs border border-slate-200/50 dark:border-slate-700/50">
                         {getInitials(info.name)}
                       </div>
                       <div className="text-left">
@@ -317,13 +409,10 @@ export const CallLogsHistory: React.FC<CallLogsProps> = ({
                         {log.status === 'completed' ? formatDuration(log.duration) : '--'}
                       </span>
                       <button
-                        onClick={() => {
-                          setSelectedLeadId(info._id);
-                          setCurrentPage('lead-detail');
-                        }}
-                        className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-450 hover:text-slate-650 dark:hover:text-slate-205 transition-colors cursor-pointer"
+                        onClick={(e) => handleThreeDotClick(e, log._id)}
+                        className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-455 hover:text-slate-650 dark:hover:text-slate-205 transition-colors cursor-pointer"
                       >
-                        <span className="material-symbols-outlined text-[16px]">chat</span>
+                        <span className="material-symbols-outlined text-[16px]">more_vert</span>
                       </button>
                     </div>
                   </div>
@@ -376,6 +465,54 @@ export const CallLogsHistory: React.FC<CallLogsProps> = ({
           </div>
         )}
       </div>
+
+      {/* Floating Absolute Context Menu for Dropdowns & Cursor triggers */}
+      {activeMenuLogId && menuPosition && (
+        <div
+          id="logs-context-menu"
+          className="absolute bg-white dark:bg-slate-800 border border-slate-250 dark:border-slate-700 rounded-xl shadow-lg z-50 py-1 w-44 animate-zoom-in text-left border-slate-200/85"
+          style={{
+            top: `${menuPosition.y}px`,
+            left: `${menuPosition.x}px`,
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => handleMenuAction('view lead', activeMenuLogId)}
+            className="w-full px-3.5 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-200 font-sans text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer text-left"
+          >
+            <span className="material-symbols-outlined text-[16px] text-slate-455 dark:text-slate-400">person</span>
+            View Lead
+          </button>
+          <button
+            onClick={() => handleMenuAction('view chat', activeMenuLogId)}
+            className="w-full px-3.5 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-200 font-sans text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer text-left"
+          >
+            <span className="material-symbols-outlined text-[16px] text-slate-455 dark:text-slate-400">chat</span>
+            View Chat
+          </button>
+          <div className="h-[1px] bg-slate-100 dark:bg-slate-700 my-1" />
+          <button
+            onClick={() => handleMenuAction('delete', activeMenuLogId)}
+            className="w-full px-3.5 py-2 hover:bg-red-50 dark:hover:bg-red-955/20 text-red-600 dark:text-red-400 font-sans text-xs font-bold flex items-center gap-2.5 transition-colors cursor-pointer text-left"
+          >
+            <span className="material-symbols-outlined text-[16px] text-red-450 dark:text-red-400">delete</span>
+            Delete Log
+          </button>
+        </div>
+      )}
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirmOpen}
+        title="Delete Call Log"
+        message={`Are you sure you want to permanently delete this call log for "${logToDelete?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteConfirmOpen(false)}
+      />
 
     </div>
   );

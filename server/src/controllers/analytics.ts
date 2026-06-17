@@ -58,9 +58,9 @@ export default class AnalyticsController {
             // 7. Active Campaigns (Templates) count
             const activeCampaigns = await req.db.Template.countDocuments({ isActive: true });
 
-            // 8. Messages per day trend (last 7 days)
+            // 8. Messages per day trend (last 30 days)
             const sevenDaysAgo = new Date();
-            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 30);
             const messagesTrend = await req.db.MessageLog.aggregate([
                 { $match: { sentAt: { $gte: sevenDaysAgo } } },
                 {
@@ -91,6 +91,7 @@ export default class AnalyticsController {
                 recentActivities
             }
 
+            
             AnalyticsController.summaryCache.set(summary);
 
             return res.handler.success(

@@ -1,12 +1,7 @@
 import type { Lead, Template, MessageLog, CallLog, ActivityLog, User } from '../types';
 import { validator } from '../validator';
+import { BASE_URL, STORAGE_KEYS } from '../config';
 
-const BASE_URL = 'http://localhost:8000';
-
-const STORAGE_KEYS = {
-  USER: 'ez_user',
-  TOKEN: 'ez_token',
-};
 
 const activeGetRequests = new Map<string, Promise<unknown>>();
 
@@ -295,6 +290,13 @@ export const apiService = {
     return res.data.calls;
   },
 
+  async deleteCallLog(id: string): Promise<boolean> {
+    await apiRequest(`/api/calls/${id}`, {
+      method: 'DELETE',
+    });
+    return true;
+  },
+
   // Activities Feed
   async getActivityLogs(): Promise<ActivityLog[]> {
     // Activities are returned as part of the dashboard analytics summary on the server
@@ -363,6 +365,7 @@ export const apiService = {
       activeCampaigns: serverData.activeCampaigns || 0,
       conversionRate,
       messagesPerDay,
+      messagesTrend: serverData.messages.trend || [],
       leadStatusBreakdown,
       topCampaigns,
       recentActivities: serverData.recentActivities,

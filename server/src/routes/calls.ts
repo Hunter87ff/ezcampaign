@@ -8,5 +8,6 @@ router.use(authorize);
 
 router.post("/initiate", CallController.initiate);
 router.get("/", CallController.list);
+router.delete("/:id", CallController.delete);
 
 export default router;

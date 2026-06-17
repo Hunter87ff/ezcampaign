@@ -1,13 +1,50 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 
 interface DailyBarChartProps {
   messagesPerDay: Record<string, number>;
+  messagesTrend?: Array<{ _id: string; count: number }>;
 }
 
-export const DailyBarChart: React.FC<DailyBarChartProps> = ({ messagesPerDay }) => {
+function formatDate(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00');
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+function getDateStr(offset: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - offset);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+export const DailyBarChart: React.FC<DailyBarChartProps> = ({ messagesPerDay, messagesTrend }) => {
   const [timeframe, setTimeframe] = useState('7_days');
-  const messagesArray = Object.entries(messagesPerDay);
-  const maxMessages = Math.max(...messagesArray.map(([, val]) => val), 1);
+
+  const bars = useMemo(() => {
+    if (timeframe === '30_days') {
+      const trendMap = new Map<string, number>();
+      if (messagesTrend) {
+        for (const item of messagesTrend) {
+          trendMap.set(item._id, item.count);
+        }
+      }
+      const days: { label: string; count: number; max: number }[] = [];
+      let maxVal = 1;
+      for (let i = 29; i >= 0; i--) {
+        const key = getDateStr(i);
+        const count = trendMap.get(key) || 0;
+        if (count > maxVal) maxVal = count;
+        days.push({ label: formatDate(key), count, max: 0 });
+      }
+      for (const d of days) d.max = maxVal;
+      return days;
+    }
+    const entries = Object.entries(messagesPerDay);
+    const max = Math.max(...entries.map(([, v]) => v), 1);
+    return entries.map(([day, count]) => ({ label: day, count, max }));
+  }, [timeframe, messagesPerDay, messagesTrend]);
 
   return (
     <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col h-full select-none text-left">
@@ -49,11 +86,11 @@ export const DailyBarChart: React.FC<DailyBarChartProps> = ({ messagesPerDay }) 
         </div>
 
         {/* Bars row */}
-        <div className="relative h-40 flex items-end justify-between gap-3 px-2 z-10">
-          {messagesArray.map(([day, count]) => {
-            const heightPct = Math.max((count / maxMessages) * 100, 8);
+        <div className={`relative h-40 flex items-stretch justify-between z-10 ${timeframe === '30_days' ? 'gap-1 px-1' : 'gap-3 px-2'}`}>
+          {bars.map(({ label, count, max }) => {
+            const heightPct = Math.max((count / max) * 100, 8);
             return (
-              <div key={day} className="flex-1 flex flex-col items-center gap-2 group cursor-pointer relative">
+              <div key={label} className="flex-1 flex flex-col justify-end items-center gap-1 group cursor-pointer relative">
                 
                 {/* Interactive Tooltip on Hover */}
                 <div className="absolute bottom-[calc(100%+8px)] left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 scale-95 group-hover:scale-100 transition-all duration-150 bg-slate-950/90 dark:bg-slate-800/95 backdrop-blur-xs text-white px-2.5 py-1 rounded-md text-[10px] font-bold shadow-md z-30 pointer-events-none mb-1 text-center whitespace-nowrap">
@@ -75,8 +112,8 @@ export const DailyBarChart: React.FC<DailyBarChartProps> = ({ messagesPerDay }) 
                 </div>
 
                 {/* Day Label */}
-                <span className="font-sans text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">
-                  {day}
+                <span className={`font-sans text-slate-400 dark:text-slate-500 font-bold tracking-wider ${timeframe === '30_days' ? 'text-[8px]' : 'text-[10px] uppercase'}`}>
+                  {label}
                 </span>
               </div>
             );

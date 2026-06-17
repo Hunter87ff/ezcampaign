@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { apiService } from '../../api';
 import type { Lead, BusinessType, LeadStatus } from '../../types';
 import { ConfirmDialog } from '../../components/confirmDialog';
@@ -17,13 +17,16 @@ export const LeadsList: React.FC<LeadsProps> = ({
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Filter States
-  const [selectedBusinessType, setSelectedBusinessType] = useState('all');
-  const [selectedStatus, setSelectedStatus] = useState('all');
-
   // Pagination States
   const [currentPageNum, setCurrentPageNum] = useState(1);
   const itemsPerPage = 6; // Adjusted to fit grid layouts nicely
+
+  // Container reference for absolute positioning
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Filter States
+  const [selectedBusinessType, setSelectedBusinessType] = useState('all');
+  const [selectedStatus, setSelectedStatus] = useState('all');
 
   // Context Menu States
   const [activeMenuLeadId, setActiveMenuLeadId] = useState<string | null>(null);
@@ -202,11 +205,13 @@ export const LeadsList: React.FC<LeadsProps> = ({
       return;
     }
     const rect = e.currentTarget.getBoundingClientRect();
-    // Dropdown aligned slightly left and below the button
-    setMenuPosition({
-      x: rect.right - 176,
-      y: rect.bottom + window.scrollY + 6,
-    });
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    if (containerRect) {
+      setMenuPosition({
+        x: rect.right - containerRect.left - 176,
+        y: rect.bottom - containerRect.top + 6,
+      });
+    }
     setMenuAnchor('button');
     setActiveMenuLeadId(leadId);
   };
@@ -215,10 +220,13 @@ export const LeadsList: React.FC<LeadsProps> = ({
   const handleRowContextMenu = (e: React.MouseEvent, leadId: string) => {
     e.preventDefault();
     e.stopPropagation();
-    setMenuPosition({
-      x: e.clientX,
-      y: e.clientY + window.scrollY,
-    });
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    if (containerRect) {
+      setMenuPosition({
+        x: e.clientX - containerRect.left,
+        y: e.clientY - containerRect.top,
+      });
+    }
     setMenuAnchor('cursor');
     setActiveMenuLeadId(leadId);
   };
@@ -269,7 +277,7 @@ export const LeadsList: React.FC<LeadsProps> = ({
   };
 
   return (
-    <div className="p-6 max-w-[1440px] mx-auto animate-fade-in select-none">
+    <div ref={containerRef} className="p-6 max-w-[1440px] mx-auto animate-fade-in select-none relative">
       
       {/* Title & Add Contact Action */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8">
@@ -493,7 +501,7 @@ export const LeadsList: React.FC<LeadsProps> = ({
           {activeMenuLeadId && menuPosition && (
             <div
               id="leads-context-menu"
-              className="fixed bg-white dark:bg-slate-800 border border-slate-250 dark:border-slate-700 rounded-xl shadow-lg z-50 py-1 w-44 animate-zoom-in text-left border-slate-200/85"
+              className="absolute bg-white dark:bg-slate-800 border border-slate-250 dark:border-slate-700 rounded-xl shadow-lg z-50 py-1 w-44 animate-zoom-in text-left border-slate-200/85"
               style={{
                 top: `${menuPosition.y}px`,
                 left: `${menuPosition.x}px`,

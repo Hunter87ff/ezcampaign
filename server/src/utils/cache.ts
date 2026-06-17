@@ -24,6 +24,7 @@ export default class cache<T> {
     }
 
     set(value: T, exp?: number) {
+        // console.log("Cache set!", value, exp);
         this.value = value;
         if (exp) {
             this.exp = new Date(Date.now() + exp);
