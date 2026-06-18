@@ -45,6 +45,14 @@ export default class MessageController {
             let status = "queued";
             let templateSid: string | undefined = undefined;
 
+
+            if (!body && !templateId) {
+                return res.handler.badRequest(
+                    res,
+                    "Either templateId or body is required"
+                );
+            }
+
             if (templateId) {
                 // Fetch template
                 const template = await req.db.Template.findById(templateId);
@@ -103,36 +111,32 @@ export default class MessageController {
                     res.logger.error("Twilio send failed:", twilioError);
                     return res.handler.badRequest(res, `Twilio delivery failed: ${twilioError.message}`, twilioError);
                 }
-            } 
-            
-            if (!body) {
-                return res.handler.badRequest(
-                    res,
-                    "Either templateId or body is required"
-                );
             }
-            
+
+
             // Send free text via Twilio
-            try {
-                const message = await client.messages.create({
-                    from: config.twilio.wp_number,
-                    to: `whatsapp:${lead.mobileNumber}`,
-                    body: body,
-                    statusCallback: `${config.twilio.hook_endpoint}/webhook/whatsapp/status`
-                });
-                twilioSid = message.sid;
-                status = message.status;
-            } catch (twilioError: any) {
-                res.logger.error("Twilio send failed:", twilioError);
-                return res.handler.badRequest(res, `Twilio delivery failed: ${twilioError.message}`, twilioError);
+            else if (body){
+                try {
+                    const message = await client.messages.create({
+                        from: config.twilio.wp_number,
+                        to: `whatsapp:${lead.mobileNumber}`,
+                        body: body,
+                        statusCallback: `${config.twilio.hook_endpoint}/webhook/whatsapp/status`
+                    });
+                    twilioSid = message.sid;
+                    status = message.status;
+                } catch (twilioError: any) {
+                    res.logger.error("Twilio send failed:", twilioError);
+                    return res.handler.badRequest(res, `Twilio delivery failed: ${twilioError.message}`, twilioError);
+                }
             }
-             
+
             // Save MessageLog
             const messageLog = new req.db.MessageLog({
                 leadId: lead._id,
                 direction: "outbound",
                 templateSid: templateSid,
-                body: body,
+                body: body || bodyText,
                 twilioSid: twilioSid,
                 status: status === "queued" ? "queued" : (status as any),
                 sentAt: new Date()
@@ -153,7 +157,7 @@ export default class MessageController {
                     twilioSid: twilioSid,
                     templateSid: templateSid,
                     status: status,
-                    body: body
+                    body: body || bodyText
                 }
             });
             await activity.save();

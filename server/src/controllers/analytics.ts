@@ -43,9 +43,14 @@ export default class AnalyticsController {
             }, {});
 
             // 4. Message counts (inbound vs outbound)
-            const outboundMessages = await req.db.MessageLog.countDocuments({ direction: "outbound" });
-            const inboundMessages = await req.db.MessageLog.countDocuments({ direction: "inbound" });
-
+            const outboundMessages = await req.db.MessageLog.countDocuments({ 
+                direction: "outbound" 
+            });
+            
+            const inboundMessages = await req.db.MessageLog.countDocuments({ 
+                direction: "inbound" 
+            });
+            
             // 5. Voice Call counts
             const totalCalls = await req.db.CallLog.countDocuments({});
 
