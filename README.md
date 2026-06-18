@@ -1,11 +1,11 @@
-# EzCampaign 🚀
+# EzCampaign
 
 EzCampaign a full-stack **WhatsApp Campaign Management Dashboard** designed for administrators to manage leads, orchestrate personalized marketing campaigns, handle interactive messages, perform real-time calling, and view operational analytics. 
 
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 1. [System Architecture](#-system-architecture)
 2. [Tech Stack](#-tech-stack)
 3. [Quick Start & Project Setup](#-quick-start--project-setup)
@@ -15,11 +15,10 @@ EzCampaign a full-stack **WhatsApp Campaign Management Dashboard** designed for 
 7. [Frontend Screen Walkthrough](#-frontend-screen-walkthrough)
 8. [Twilio & Webhook (ngrok) Configuration](#-twilio--webhook-ngrok-configuration)
 9. [Docker Deployment](#-docker-deployment)
-10. [Security & Compliance Checklist](#-security--compliance-checklist)
 
 ---
 
-## 🏗 System Architecture
+## System Architecture
 
 The following diagrams roughly illustrates how EzCampaign orchestrates WhatsApp template communication, incoming replies (having a little issue), and VoIP calls:
 
@@ -74,7 +73,7 @@ sequenceDiagram
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 
 - **Frontend:** [React 19](./client/package.json) + [Vite](./client/package.json) + [TailwindCSS v4](./client/package.json) + TypeScript (TSX)
 - **Backend:** [Node.js](./server/package.json) + [Express](./server/package.json) + [Bun](./server/package.json) (Ultra-fast Javascript Runtime)
@@ -84,7 +83,7 @@ sequenceDiagram
 
 ---
 
-## 🚀 Quick Start & Project Setup
+## Quick Start & Project Setup
 
 An automated setup script is provided at the root of the workspace. It automatically detects the JS package manager (preferring `bun`, falling back to `npm`), installs frontend and backend dependencies, and initializes template configuration files.
 
@@ -133,7 +132,7 @@ The frontend application will be hosted at `http://localhost:3000` (or the port 
 
 ---
 
-## ⚙️ Environment Configuration
+## Environment Configuration
 
 Create a [server/.env](./server/.env) file under the `/server` directory.
 
@@ -164,7 +163,7 @@ TWILIO_PHONE_NUMBER=+1234567890
 
 ---
 
-## 🗄 Database Schema Docs
+## Database Schema Docs
 
 The database is built on MongoDB. The tables below specify the requirements and formats for each Mongoose collection located in `server/src/models/`:
 
@@ -258,11 +257,11 @@ Tracks general user/system events for audit tracking and dashboard analytics fee
 
 ---
 
-## 🔌 API Route Reference
+## API Route Reference
 
 All API routes are protected (require valid JWT headers) except where noted as **Public**.
 
-### 🔐 Authentication Endpoints
+### Authentication Endpoints
 - Controller: [server/src/controllers/auth.ts](./server/src/controllers/auth.ts)
 
 | Method | Endpoint | Access | Description |
@@ -276,7 +275,7 @@ All API routes are protected (require valid JWT headers) except where noted as *
 > - **Email:** `admin@company.com`
 > - **Password:** `Admin@123`
 
-### 👥 Lead Management Endpoints
+### Lead Management Endpoints
 - Controller: [server/src/controllers/leads.ts](./server/src/controllers/leads.ts)
 
 | Method | Endpoint | Access | Description |
@@ -287,7 +286,7 @@ All API routes are protected (require valid JWT headers) except where noted as *
 | `PUT` | `/api/leads/:id` | Authed | Updates specific lead properties |
 | `DELETE`| `/api/leads/:id` | Authed | Soft deletes lead profile (`isDeleted = true`) |
 
-### 📄 Template Management Endpoints
+### Template Management Endpoints
 - Controller: [server/src/controllers/templates.ts](./server/src/controllers/templates.ts)
 
 | Method | Endpoint | Access | Description |
@@ -296,7 +295,7 @@ All API routes are protected (require valid JWT headers) except where noted as *
 | `POST` | `/api/templates` | Authed | Saves a template schema under specific businessType |
 | `DELETE`| `/api/templates/:id`| Authed | Deletes a template |
 
-### 💬 Messaging & Conversation Endpoints
+### Messaging & Conversation Endpoints
 - Controller: [server/src/controllers/messages.ts](./server/src/controllers/messages.ts)
 
 | Method | Endpoint | Access | Description |
@@ -304,7 +303,7 @@ All API routes are protected (require valid JWT headers) except where noted as *
 | `POST` | `/api/messages/send` | Authed | Sends WhatsApp template message or custom text |
 | `GET` | `/api/messages/:leadId`| Authed | Retrieves messages history page for a lead |
 
-### 📞 Voice Calling Endpoints
+### Voice Calling Endpoints
 - Controller: [server/src/controllers/calls.ts](./server/src/controllers/calls.ts)
 
 | Method | Endpoint | Access | Description |
@@ -312,14 +311,14 @@ All API routes are protected (require valid JWT headers) except where noted as *
 | `POST` | `/api/calls/initiate`| Authed | Places outgoing Twilio voice call |
 | `GET` | `/api/calls` | Authed | Lists outgoing call logs |
 
-### 📊 Analytics Endpoints
+### Analytics Endpoints
 - Controller: [server/src/controllers/analytics.ts](./server/src/controllers/analytics.ts)
 
 | Method | Endpoint | Access | Description |
 | :---: | :--- | :---: | :--- |
 | `GET` | `/api/analytics/summary`| Authed | Overall stats (leads status, business type, message counts, activity log feed) |
 
-### 🔔 Public Twilio Webhook Endpoints
+### Public Twilio Webhook Endpoints
 - Controller: [server/src/controllers/webhooks.ts](./server/src/controllers/webhooks.ts)
 - Voice TwiML: [server/src/controllers/twiml.ts](./server/src/controllers/twiml.ts)
 
@@ -332,7 +331,7 @@ All API routes are protected (require valid JWT headers) except where noted as *
 
 ---
 
-## 💻 Frontend Screen Walkthrough
+## Frontend Screen Walkthrough
 
 The frontend client is implemented as a single-page application (SPA) in TypeScript React:
 
@@ -355,9 +354,9 @@ The frontend client is implemented as a single-page application (SPA) in TypeScr
 
 ---
 
-## 📞 Twilio & Webhook (ngrok) Configuration
+## Twilio & Webhook (ngrok) Configuration
 
-To capture incoming SMS/WhatsApp messages and update call statuses, Twilio needs a public URL pointing to your local server.
+I've used cloudflare for tunneling my private network, but you can also use ngrok to capture incoming SMS/WhatsApp messages and update call statuses, Twilio needs a public URL pointing to your local server.
 
 ### Step 1: Fire up ngrok
 Run ngrok to forward local Express server port `8000`:
@@ -382,7 +381,7 @@ TWILIO_HOOK_ENDPOINT=https://xxxx-xx-xx-xx.ngrok-free.app
 
 ---
 
-## 🐳 Docker Deployment
+## Docker Deployment
 
 Both components are packaged with Dockerfiles for simple, containerized execution.
 
@@ -405,13 +404,4 @@ bun run build:docker
 # Start client container (exposes nginx container at port 80)
 bun run start:docker
 ```
-
----
-
-## 🔒 Security & Compliance Checklist
-
-Before committing changes or deploying to a staging/production repository, confirm the following steps are validated:
-
-- [x] [server/.env](./server/.env) is listed inside [server/.gitignore](./server/.gitignore) and is not checked into Git history.
-- [x] Twilio keys (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`) are referenced solely via environment variables and never hardcoded in files like [server/src/controllers/messages.ts](./server/src/controllers/messages.ts) or [server/src/controllers/calls.ts](./server/src/controllers/calls.ts).
-- [x] Database credentials and passwords are not hardcoded.
+> npm also works if you replace `bun run` with `npm run` in the above commands.
