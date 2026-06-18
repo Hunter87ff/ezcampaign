@@ -161,7 +161,7 @@ TWILIO_PHONE_NUMBER=+1234567890
 
 > [!NOTE]
 > - Ensure `DB_URI` points to a running MongoDB instance.
-> - `TWILIO_HOOK_ENDPOINT` should contain your active `ngrok` tunnel URL to forward webhook events locally.
+> - `TWILIO_HOOK_ENDPOINT` should contain valid global accessible https link.
 
 ---
 
