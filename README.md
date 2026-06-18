@@ -1,8 +1,7 @@
 # EzCampaign 🚀
 
-EzCampaign is a state-of-the-art, full-stack **WhatsApp Campaign Management Dashboard** designed for administrators to manage leads, orchestrate personalized marketing campaigns, handle interactive messages, perform real-time calling, and view operational analytics. 
+EzCampaign a full-stack **WhatsApp Campaign Management Dashboard** designed for administrators to manage leads, orchestrate personalized marketing campaigns, handle interactive messages, perform real-time calling, and view operational analytics. 
 
-Built using a modern TypeScript tech stack, this application integrates seamlessly with Twilio to bridge WhatsApp template dispatches, inbound reply webhooks, and outbound calling voice TwiML loops.
 
 ---
 
@@ -22,7 +21,7 @@ Built using a modern TypeScript tech stack, this application integrates seamless
 
 ## 🏗 System Architecture
 
-The following diagrams illustrate how EzCampaign orchestrates WhatsApp template communication, incoming replies, and VoIP calls:
+The following diagrams roughly illustrates how EzCampaign orchestrates WhatsApp template communication, incoming replies (having a little issue), and VoIP calls:
 
 ### Outbound & Inbound WhatsApp Flow
 ```mermaid
