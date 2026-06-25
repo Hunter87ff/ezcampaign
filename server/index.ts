@@ -1,5 +1,4 @@
-import {configDotenv} from 'dotenv';
-configDotenv();
+import 'dotenv/config';
 
 
 import EzCampaign from "./src/app";

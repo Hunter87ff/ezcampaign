@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
-import { twiml } from "twilio";
+import twilio from "twilio";
+const { twiml } = twilio;
 
 export default class TwiMLController {
     /**

@@ -1,7 +1,7 @@
 import config from "@/config";
 import {logger} from "@/utils/logger";
 import { Role } from '@/enums';
-import {sign, verify} from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 
 
 export class UserToken{
@@ -37,14 +37,14 @@ export class UserToken{
         if (this.token){
             return this.token;
         }
-        const token = sign(this.toJson(), config.jwt_secret, {expiresIn : config.jwt_expires});
+        const token = jwt.sign(this.toJson(), config.jwt_secret, {expiresIn : config.jwt_expires});
         this.token = token;
         return token;
     }
 
     static async fromToken(token : string){
         try{
-            const payload = verify(token, config.jwt_secret);
+            const payload = jwt.verify(token, config.jwt_secret);
             if(!payload) {return null;}
             const {id, name, role} = payload as any;
             if(!id || !name || !role) {return null;}

@@ -1,7 +1,7 @@
 
 import config from "@/config";
 import {hash, compare} from "bcryptjs";
-import {sign, verify, decode} from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 
 
 export default class Helper {
@@ -17,17 +17,17 @@ export default class Helper {
     }
 
     static async generateToken(payload : Object){
-        const token  = sign(payload, config.jwt_secret, {expiresIn : config.jwt_expires});
+        const token  = jwt.sign(payload, config.jwt_secret, {expiresIn : config.jwt_expires});
         return token;
     }
 
     static async verifyToken(token : string){
-        const decoded = verify(token, config.jwt_secret);
+        const decoded = jwt.verify(token, config.jwt_secret);
         return decoded;
     }
 
     static async decodeToken(token : string){
-        const decoded = decode(token);
+        const decoded = jwt.decode(token);
         return decoded;
     }
 
