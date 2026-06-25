@@ -405,3 +405,10 @@ bun run build:docker
 bun run start:docker
 ```
 > npm also works if you replace `bun run` with `npm run` in the above commands.
+
+
+### Runtime
+tested on node v24.14.0, bun 1.3.9
+
+### Notes
+> import issue with tsx is now patched
