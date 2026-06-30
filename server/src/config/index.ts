@@ -8,7 +8,7 @@ export const config = {
     db_uri: process.env.DB_URI || process.env.DB_URL || process.env.MONGODB_URI || '',
     jwt_secret: process.env.JWT_SECRET || '',
     jwt_expires: 1000 * 60 * 60 * 24 * 1,
-    bcrypt_salt_rounds: process.env.BCRYPT_SALT_ROUNDS || 10,
+    bcrypt_salt_rounds: Number(process.env.BCRYPT_SALT_ROUNDS) || 10,
     session_secret: process.env.SESSION_SECRET || '',
     twilio: {
         sid: process.env.TWILIO_ACCOUNT_SID || '',
