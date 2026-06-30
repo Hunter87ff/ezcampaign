@@ -1,7 +1,7 @@
 
 
 export const config = {
-    port: process.env.PORT || 8000,
+    port: Number(process.env.PORT) || 8000,
     endpoint: process.env.ENDPOINT || 'http://localhost:8000',
     is_prod: process.env.NODE_ENV === 'production',
     debug_mode: process.env.DEBUG_MODE === 'true',
@@ -9,7 +9,6 @@ export const config = {
     jwt_secret: process.env.JWT_SECRET || '',
     jwt_expires: 1000 * 60 * 60 * 24 * 1,
     bcrypt_salt_rounds: Number(process.env.BCRYPT_SALT_ROUNDS) || 10,
-    session_secret: process.env.SESSION_SECRET || '',
     twilio: {
         sid: process.env.TWILIO_ACCOUNT_SID || '',
         auth_token: process.env.TWILIO_AUTH_TOKEN || '',
@@ -29,7 +28,6 @@ function checkEnvironment() {
     }
     if (!config.db_uri) return error('DB URI not found');
     if (!config.jwt_secret) return error('JWT SECRET not found');
-    // if(!config.session_secret) return error('SESSION SECRET not found');
     if (!config.twilio.sid) return error('TWILIO SID not found');
     if (!config.twilio.auth_token) return error('TWILIO AUTH TOKEN not found');
     if (!config.twilio.wp_number) return error('TWILIO FROM not found');
